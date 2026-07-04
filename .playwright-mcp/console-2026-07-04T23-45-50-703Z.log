@@ -1,0 +1,4 @@
+[     862ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/api/gemini/health:0
+[  204561ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/api/gemini/health:0
+[  206697ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/api/gemini/health:0
+[  209228ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/api/gemini/health:0
