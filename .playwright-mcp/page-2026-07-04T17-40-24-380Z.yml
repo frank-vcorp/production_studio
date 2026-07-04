@@ -1,0 +1,111 @@
+- generic [ref=e47]:
+  - navigation "Accesibilidad" [ref=e48]:
+    - link "Saltar al contenido principal" [ref=e49] [cursor=pointer]:
+      - /url: "#main-content"
+  - banner [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e54]:
+        - generic [ref=e55]: Bridge Creative Engine
+        - heading "S5" [level=1] [ref=e56]:
+          - generic [ref=e57]: S5
+      - generic [ref=e58]:
+        - 'generic "Última verificación: 11:38:55" [ref=e59]': Sin conexión al proxy
+        - button "Settings"
+  - navigation "Tabs principales" [ref=e61]:
+    - tablist "Secciones de la app" [ref=e62]:
+      - tab "Brief" [ref=e63] [cursor=pointer]
+      - tab "Storyboard" [active] [selected] [ref=e64] [cursor=pointer]
+      - tab "Export" [ref=e65] [cursor=pointer]
+  - main [ref=e66]:
+    - generic [ref=e117]:
+      - generic [ref=e119]:
+        - generic [ref=e120]:
+          - heading "Keyframe Storyboard" [level=2] [ref=e121]: Keyframe Storyboard
+          - paragraph [ref=e122]: 6 slots base + 3 keyframes Auto (Imagen 3) generadas.
+        - generic [ref=e123]: Photos reales en slots, Imagen 3 para los OUT.
+      - generic [ref=e124]:
+        - 'button "Keyframe Logo: empty" [ref=e125] [cursor=pointer]':
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - heading "Logo" [level=3] [ref=e128]: Logo
+              - paragraph [ref=e129]: Logo PNG/SVG para cortinilla
+            - generic [ref=e130]: Vacío
+          - button "Subir foto logo" [ref=e132]:
+            - generic [ref=e133]: Subir foto logo
+          - button "Generar clip" [ref=e135]
+        - 'button "Keyframe Problema: empty" [ref=e136] [cursor=pointer]':
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - heading "Problema" [level=3] [ref=e139]: Problema
+              - paragraph [ref=e140]: "Foto real: el problema que resuelves"
+            - generic [ref=e141]: Vacío
+          - button "Subir foto problema" [ref=e143]:
+            - generic [ref=e144]: Subir foto problema
+          - button "Generar clip" [ref=e146]
+        - 'button "Keyframe Taller: empty" [ref=e147] [cursor=pointer]':
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "Taller" [level=3] [ref=e150]: Taller
+              - paragraph [ref=e151]: "Foto real: tu espacio / equipo"
+            - generic [ref=e152]: Vacío
+          - button "Subir foto taller" [ref=e154]:
+            - generic [ref=e155]: Subir foto taller
+          - button "Generar clip" [ref=e157]
+        - 'button "Keyframe Solución: empty" [ref=e158] [cursor=pointer]':
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - heading "Solución" [level=3] [ref=e161]: Solución
+              - paragraph [ref=e162]: "Foto real: el resultado final"
+            - generic [ref=e163]: Vacío
+          - button "Subir foto solución" [ref=e165]:
+            - generic [ref=e166]: Subir foto solución
+          - button "Generar clip" [ref=e168]
+        - 'button "Keyframe CTA Base: empty" [ref=e169] [cursor=pointer]':
+          - generic [ref=e170]:
+            - generic [ref=e171]:
+              - heading "CTA Base" [level=3] [ref=e172]: CTA Base
+              - paragraph [ref=e173]: Foto fondo tarjeta final (opcional)
+            - generic [ref=e174]: Vacío
+          - button "Subir foto cta base" [ref=e176]:
+            - generic [ref=e177]: Subir foto cta base
+          - button "Generar clip" [ref=e179]
+        - 'button "Keyframe CTA Final: empty" [ref=e180] [cursor=pointer]':
+          - generic [ref=e181]:
+            - generic [ref=e182]:
+              - heading "CTA Final" [level=3] [ref=e183]: CTA Final
+              - paragraph [ref=e184]: "Foto real: recepción / fachada"
+            - generic [ref=e185]: Vacío
+          - button "Subir foto cta final" [ref=e187]:
+            - generic [ref=e188]: Subir foto cta final
+        - 'button "Keyframe atencion_out: empty" [ref=e189] [cursor=pointer]':
+          - generic [ref=e190]:
+            - generic [ref=e191]:
+              - heading "Atencion_out Auto" [level=3] [ref=e192]:
+                - text: Atencion_out
+                - generic [ref=e193]: Auto
+              - paragraph [ref=e194]: Generada automáticamente por Imagen 3
+            - generic [ref=e195]: Vacío
+          - button "Subir foto atencion_out" [ref=e197]:
+            - generic [ref=e198]: Subir foto atencion_out
+        - 'button "Keyframe interes_out: empty" [ref=e199] [cursor=pointer]':
+          - generic [ref=e200]:
+            - generic [ref=e201]:
+              - heading "Interes_out Auto" [level=3] [ref=e202]:
+                - text: Interes_out
+                - generic [ref=e203]: Auto
+              - paragraph [ref=e204]: Generada automáticamente por Imagen 3
+            - generic [ref=e205]: Vacío
+          - button "Subir foto interes_out" [ref=e207]:
+            - generic [ref=e208]: Subir foto interes_out
+        - 'button "Keyframe deseo_out: empty" [ref=e209] [cursor=pointer]':
+          - generic [ref=e210]:
+            - generic [ref=e211]:
+              - heading "Deseo_out Auto" [level=3] [ref=e212]:
+                - text: Deseo_out
+                - generic [ref=e213]: Auto
+              - paragraph [ref=e214]: Generada automáticamente por Imagen 3
+            - generic [ref=e215]: Vacío
+          - button "Subir foto deseo_out" [ref=e217]:
+            - generic [ref=e218]: Subir foto deseo_out
+  - contentinfo [ref=e111]:
+    - generic [ref=e112]: Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · 2026

@@ -86,12 +86,48 @@ function persistDraft(d: Draft): void {
 }
 
 export function BriefWizard() {
+  const storeBrief = useProjectStore((s) => s.brief);
   const loadBrief = useProjectStore((s) => s.loadBrief);
   const setStep = useUIStore((s) => s.setStep);
   const addToast = useUIStore((s) => s.addToast);
-  const [draft, setDraft] = useState<Draft>(() => loadDraft());
+  const [draft, setDraft] = useState<Draft>(() => {
+    // S5 bug fix: sincronizar con storeBrief si tiene servicios y draft está vacío.
+    // Caso: usuario selecciona sector template → loadBrief(seeded) → storeBrief.services = 3.
+    // Sin este sync, el wizard muestra "Aún no agregas servicios" aunque el store tenga 3.
+    const localDraft = loadDraft();
+    if (localDraft.services.length === 0) {
+      const persistedBrief = useProjectStore.getState().brief;
+      if (persistedBrief && persistedBrief.services.length > 0) {
+        return {
+          step: localDraft.step,
+          business: persistedBrief.business,
+          services: persistedBrief.services,
+          vision: persistedBrief.globalVision,
+        };
+      }
+    }
+    return localDraft;
+  });
   const [step, setLocalStep] = useState<number>(draft.step);
   const [dirty, setDirty] = useState(false);
+
+  // S5 bug fix: si el store recibe un sector template DESPUÉS de montar el wizard,
+  // sincronizar el draft con los nuevos servicios.
+  useEffect(() => {
+    if (
+      storeBrief &&
+      storeBrief.services.length > 0 &&
+      draft.services.length === 0 &&
+      !dirty
+    ) {
+      setDraft({
+        step,
+        business: storeBrief.business,
+        services: storeBrief.services,
+        vision: storeBrief.globalVision,
+      });
+    }
+  }, [storeBrief, draft.services.length, dirty, step]);
 
   useEffect(() => {
     if (dirty) {

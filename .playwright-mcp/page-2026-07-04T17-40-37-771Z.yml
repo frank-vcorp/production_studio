@@ -1,0 +1,38 @@
+- generic [ref=e47]:
+  - navigation "Accesibilidad" [ref=e48]:
+    - link "Saltar al contenido principal" [ref=e49] [cursor=pointer]:
+      - /url: "#main-content"
+  - banner [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e54]:
+        - generic [ref=e55]: Bridge Creative Engine
+        - heading "S5" [level=1] [ref=e56]:
+          - generic [ref=e57]: S5
+      - generic [ref=e58]:
+        - 'generic "Última verificación: 11:38:55" [ref=e59]': Sin conexión al proxy
+        - button "Settings"
+  - navigation "Tabs principales" [ref=e61]:
+    - tablist "Secciones de la app" [ref=e62]:
+      - tab "Brief" [active] [selected] [ref=e63] [cursor=pointer]
+      - tab "Storyboard" [ref=e64] [cursor=pointer]
+      - tab "Export" [ref=e65] [cursor=pointer]
+  - main [ref=e66]:
+    - generic [ref=e219]:
+      - generic [ref=e220]:
+        - generic [ref=e221]:
+          - heading "Brief Wizard" [level=2] [ref=e222]: Brief Wizard
+          - paragraph [ref=e223]: 3 pasos · ~5 min. Tu información se guarda localmente.
+        - tablist "Pasos del wizard" [ref=e224]:
+          - tab "Negocio" [ref=e225]
+          - tab "Fotos Clave" [selected] [ref=e226]
+          - tab "Estilo" [ref=e227]
+      - generic [ref=e229]:
+        - generic [ref=e230]: Aún no agregas servicios. Empieza con tu servicio principal.
+        - button "Agregar servicio" [ref=e231] [cursor=pointer]
+      - generic [ref=e232]:
+        - generic [ref=e233]: Paso 2 de 3
+        - generic [ref=e234]:
+          - button "Atrás" [ref=e235] [cursor=pointer]
+          - button "Siguiente" [ref=e236] [cursor=pointer]
+  - contentinfo [ref=e111]:
+    - generic [ref=e112]: Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · 2026

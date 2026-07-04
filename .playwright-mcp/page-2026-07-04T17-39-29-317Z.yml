@@ -1,0 +1,81 @@
+- generic [ref=e47]:
+  - navigation "Accesibilidad" [ref=e48]:
+    - link "Saltar al contenido principal" [ref=e49] [cursor=pointer]:
+      - /url: "#main-content"
+  - banner [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e54]:
+        - generic [ref=e55]: Bridge Creative Engine
+        - heading "S5" [level=1] [ref=e56]:
+          - generic [ref=e57]: S5
+      - generic [ref=e58]:
+        - 'generic "Última verificación: 11:38:55" [ref=e59]': Sin conexión al proxy
+        - button "Settings"
+  - navigation "Tabs principales" [ref=e61]:
+    - tablist "Secciones de la app" [ref=e62]:
+      - tab "Brief" [selected] [ref=e63] [cursor=pointer]
+      - tab "Storyboard" [ref=e64] [cursor=pointer]
+      - tab "Export" [ref=e65] [cursor=pointer]
+  - main [ref=e66]:
+    - generic [ref=e67]:
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - heading "Brief Wizard" [level=2] [ref=e70]: Brief Wizard
+          - paragraph [ref=e71]: 3 pasos · ~5 min. Tu información se guarda localmente.
+        - tablist "Pasos del wizard" [ref=e72]:
+          - tab "Negocio" [selected] [ref=e73]
+          - tab "Fotos Clave" [ref=e74]
+          - tab "Estilo" [ref=e75]
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - generic [ref=e79]: Nombre comercial*
+          - textbox "Nombre comercial*" [ref=e80]:
+            - /placeholder: "Ej: CP Automotriz"
+        - generic [ref=e81]:
+          - generic [ref=e82]: Acrónimo / Sigla
+          - textbox "Acrónimo / Sigla" [ref=e83]:
+            - /placeholder: CPA
+        - generic [ref=e84]:
+          - generic [ref=e85]: Slogan principal
+          - textbox "Slogan principal" [ref=e86]:
+            - /placeholder: Colisión y Pintura Premium
+        - generic [ref=e87]:
+          - generic [ref=e88]: Descripción del negocio
+          - textbox "Descripción del negocio" [ref=e89]:
+            - /placeholder: ¿A qué se dedica el negocio? ¿Qué problema resuelves?
+        - generic [ref=e90]:
+          - generic [ref=e91]: Sector
+          - combobox "Sector" [ref=e92]:
+            - option "Automotriz"
+            - option "Estética"
+            - option "Comida"
+            - option "Salud"
+            - option "Inmobiliaria"
+            - option "Educación"
+            - option "Tecnología"
+            - option "Retail"
+            - option "Otro" [selected]
+        - generic [ref=e93]:
+          - generic [ref=e94]: Audiencia / buyer persona
+          - textbox "Audiencia / buyer persona" [ref=e95]:
+            - /placeholder: Dueños de autos en Querétaro
+        - generic [ref=e96]:
+          - generic [ref=e97]: Diferenciadores (uno por línea)
+          - textbox "Diferenciadores (uno por línea)" [ref=e98]:
+            - /placeholder: Cabina presurizada
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - generic [ref=e101]: WhatsApp
+            - textbox "WhatsApp" [ref=e102]:
+              - /placeholder: +52 442 704 3564
+          - generic [ref=e103]:
+            - generic [ref=e104]: Ubicación
+            - textbox "Ubicación" [ref=e105]:
+              - /placeholder: Querétaro, Qro.
+      - generic [ref=e106]:
+        - generic [ref=e107]: Paso 1 de 3
+        - generic [ref=e108]:
+          - button "Atrás" [disabled] [ref=e109]
+          - button "Siguiente" [ref=e110] [cursor=pointer]
+  - contentinfo [ref=e111]:
+    - generic [ref=e112]: Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · 2026
