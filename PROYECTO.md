@@ -26,7 +26,7 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 | **S3** | `IMPL-20260703-03` | `[✓] Completado` | Pack RRSS 4 ratios (9:16, 1:1, 4:5, 16:9) + safe zones | 4-5h |
 | **S4** | `IMPL-20260703-04` | `[~] En Progreso` | Edición granular inline + Prompt Gate v2 + smart concat | 4-5h |
 | **S5** | `IMPL-20260703-05` | `[✓] Completado` | Wizard guiado + templates sector + A11y AA + responsive | 4-5h |
-| **S6** | `IMPL-20260703-06` | `[ ] Planificado` | Tests 80% + CI/CD + Docs completas + analytics opt-in | 3-4h |
+| **S6** | `IMPL-20260703-06` | `[~] En Progreso` | Tests 80% + CI/CD + Docs completas + analytics opt-in | 3-4h |
 
 ---
 
@@ -189,8 +189,8 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 
 ## 📌 PRÓXIMA ACCIÓN
 
-**Sprint Actual:** S6 — Tests + CI/CD + Docs + Observabilidad (sprint final)  
-**Próxima Tarea:** 6.1 — GitHub Actions workflow + Storybook catalog + tests E2E  
-**Responsable:** SOFIA (SPEC-S6-TESTS-CICD por crear)  
-**Handoff:** Pendiente  
-**Sprint Previo Cerrado:** S5 → `context/checkpoints/CHK_2026-07-04_S5.md` (audit GEMINI pendiente)
+**Sprint Actual:** S6 — Tests + CI/CD + Docs + Observabilidad (SPRINT FINAL)  
+**Próxima Tarea:** 6.1 — Coverage tests ≥80% + 4 E2E happy-path Playwright specs  
+**Responsable:** SOFIA (SPEC-S6-TESTS-CICD.md)  
+**Handoff:** `context/interconsultas/S6-handoff.md`  
+**Sprint Previo Cerrado:** S5 → commit `d04fc27` (181 tests + 7 E2E a11y + H1 fix)
