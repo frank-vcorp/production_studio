@@ -1,0 +1,29 @@
+declare module 'vite-plugin-copy' {
+  import type { Plugin } from 'vite';
+
+  interface CopyTarget {
+    src: string | string[];
+    dest: string;
+    rename?: string | string[] | ((name: string, fileExtension: string, srcPath: string) => string);
+    transform?: {
+      encoding?: BufferEncoding;
+      transformer?: (contents: Buffer, srcPath: string) => string | Buffer | Promise<string | Buffer>;
+    } | ((contents: Buffer, srcPath: string) => string | Buffer | Promise<string | Buffer>);
+  }
+
+  interface CopyOptions {
+    targets: CopyTarget | CopyTarget[];
+    hook?: 'buildStart' | 'buildEnd' | 'closeBundle' | 'renderChunk' | 'generateBundle' | 'writeBundle';
+    verbose?: boolean | 'info';
+    copySync?: boolean;
+    flatten?: boolean | ((target: string) => boolean);
+    filtered?: (file: string) => boolean;
+    /**
+     * @deprecated rename to flatten
+     */
+    flat?: boolean;
+  }
+
+  export function copy(options: CopyOptions): Plugin;
+  export default copy;
+}

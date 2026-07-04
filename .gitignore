@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+
+# Worker
+worker/dist/
+worker/.wrangler/
+worker/node_modules/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Cache
+.vite/
+.cache/
+
+# Build artifacts
+public/ffmpeg-core/
+
+# FUSE temp files
+.fuse_*

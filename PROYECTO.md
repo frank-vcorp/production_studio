@@ -21,8 +21,8 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 
 | Sprint | ID | Estado | Entregable Demostrable | Duración |
 |--------|-----|--------|------------------------|----------|
-| **S1** | `IMPL-20260703-01` | `[~] En Progreso` | Brief → 4 fotos → 1 clip Veo → master.mp4 descargable | 4-5h |
-| **S2** | `IMPL-20260703-02` | `[ ] Planificado` | Lote 6 clips background + cost estimator + survive refresh | 4-5h |
+| **S1** | `IMPL-20260703-01` | `[✓] Completado` | Brief → 4 fotos → 1 clip Veo → master.mp4 descargable | 4-5h |
+| **S2** | `IMPL-20260703-02` | `[~] En Progreso` | Lote 6 clips background + cost estimator + survive refresh | 4-5h |
 | **S3** | `IMPL-20260703-03` | `[ ] Planificado` | Pack RRSS 4 ratios (9:16, 1:1, 4:5, 16:9) + safe zones | 4-5h |
 | **S4** | `IMPL-20260703-04` | `[ ] Planificado` | Edición granular inline + Prompt Gate v2 + smart concat | 4-5h |
 | **S5** | `IMPL-20260703-05` | `[ ] Planificado` | Wizard guiado + templates sector + A11y AA + responsive | 4-5h |
@@ -179,12 +179,14 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 
 | Checkpoint | Sprint | Fecha | Commit | Notas |
 |------------|--------|-------|--------|-------|
-| — | — | — | — | Pendiente primer checkpoint |
+| `CHK_2026-07-03_S1.md` | S1 ✅ | 2026-07-03 | — | 17/17 tareas, 4 logs verde, 20/20 tests |
 
 ---
 
 ## 📌 PRÓXIMA ACCIÓN
 
-**Sprint Actual:** S1 — Foundation + Security + First Happy Path  
-**Próxima Tarea:** 1.1 — Vite + React + TS + Tailwind + deps base  
-**Responsable:** SOFIA (delegación vía handoff `context/interconsultas/S1-handoff.md`)
+**Sprint Actual:** S2 — Robustez Veo + Background Jobs + Costos  
+**Próxima Tarea:** 2.1 — CostEstimator (PRICING_TABLE)  
+**Responsable:** SOFIA (SPEC-S2-ROBUSTNESS.md)  
+**Handoff:** `context/interconsultas/S2-handoff.md`  
+**Sprint Previo Cerrado:** S1 → `context/checkpoints/CHK_2026-07-03_S1.md` (audit GEMINI verde con H1 cerrado)
