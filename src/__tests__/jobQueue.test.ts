@@ -181,4 +181,99 @@ describe('jobQueue', () => {
     expect(state.jobs.find((j) => j.id === id)?.status).toBe('done');
     void useProjectStore;
   });
+
+  it('setParallelSlots clamp mínimo 1', () => {
+    expect(jobQueue.getParallelSlots()).toBe(3);
+    jobQueue.setParallelSlots(0);
+    expect(jobQueue.getParallelSlots()).toBe(1);
+    jobQueue.setParallelSlots(-5);
+    expect(jobQueue.getParallelSlots()).toBe(1);
+    jobQueue.setParallelSlots(5);
+    expect(jobQueue.getParallelSlots()).toBe(5);
+  });
+
+  it('pause de job queued cambia status y termina worker (no crea nuevo)', async () => {
+    await jobQueue.initialize();
+    jobQueue.setParallelSlots(0);
+    const [id] = await jobQueue.createBatch([{ kind: 'tts', text: 'p', voice: 'es' }]);
+    await new Promise((r) => setTimeout(r, 10));
+    await jobQueue.pause(id);
+    expect(jobQueue.getQueueState().jobs.find((j) => j.id === id)?.status).toBe('paused');
+    jobQueue.setParallelSlots(3);
+  });
+
+  it('resume de paused vuelve a queued y dispara processNext', async () => {
+    await jobQueue.initialize();
+    jobQueue.setParallelSlots(0);
+    const [id] = await jobQueue.createBatch([{ kind: 'tts', text: 'r', voice: 'es' }]);
+    await jobQueue.pause(id);
+    jobQueue.setParallelSlots(3);
+    await jobQueue.resume(id);
+    await new Promise((r) => setTimeout(r, 10));
+    // Status: queued o active (processNext lo promueve)
+    const status = jobQueue.getQueueState().jobs.find((j) => j.id === id)?.status;
+    expect(['queued', 'active']).toContain(status);
+  });
+
+  it('cancelAll cancela todos los pendientes/activos', async () => {
+    await jobQueue.initialize();
+    await jobQueue.createBatch([
+      { kind: 'tts', text: 'a', voice: 'es' },
+      { kind: 'tts', text: 'b', voice: 'es' },
+      { kind: 'tts', text: 'c', voice: 'es' },
+    ]);
+    await new Promise((r) => setTimeout(r, 10));
+    await jobQueue.cancelAll();
+    const state = jobQueue.getQueueState();
+    expect(state.jobs.every((j) => j.status === 'cancelled')).toBe(true);
+  });
+
+  it('clearCompleted elimina done/fallback_done/failed/cancelled del IDB + state', async () => {
+    await jobQueue.initialize();
+    await jobQueue.createBatch([{ kind: 'tts', text: 'x', voice: 'es' }]);
+    await jobQueue.cancelAll();
+    await jobQueue.clearCompleted();
+    expect(jobQueue.getQueueState().jobs.length).toBe(0);
+  });
+
+  it('onJobFailed marca status failed + fallbackReason para códigos recuperables', async () => {
+    await jobQueue.initialize();
+    const [id] = await jobQueue.createBatch([{ kind: 'tts', text: 'f', voice: 'es' }]);
+    await new Promise((r) => setTimeout(r, 50));
+    const w = MockWorker.instances.find((mw) => mw.onmessage !== null);
+    if (w) {
+      w._emit({
+        type: 'JOB_FAILED',
+        jobId: id,
+        error: { message: 'quota', code: 'quota', attemptNumber: 1 },
+      });
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    const job = jobQueue.getQueueState().jobs.find((j) => j.id === id);
+    expect(job?.status).toBe('failed');
+    expect(job?.fallbackReason).toBe('quota');
+  });
+
+  it('onJobCompleted con fallback marca status fallback_done', async () => {
+    await jobQueue.initialize();
+    const [id] = await jobQueue.createBatch([{ kind: 'tts', text: 'fb', voice: 'es' }]);
+    await new Promise((r) => setTimeout(r, 50));
+    const w = MockWorker.instances.find((mw) => mw.onmessage !== null);
+    if (w) {
+      w._emit({
+        type: 'JOB_COMPLETED',
+        jobId: id,
+        result: {
+          blob: new ArrayBuffer(4),
+          mimeType: 'video/mp4',
+          fallbackUsed: true,
+          fallbackReason: 'safety',
+          attempts: 5,
+          totalLatencyMs: 200,
+        },
+      });
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(jobQueue.getQueueState().jobs.find((j) => j.id === id)?.status).toBe('fallback_done');
+  });
 });

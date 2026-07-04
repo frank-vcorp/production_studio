@@ -149,6 +149,16 @@ export const useProjectStore = create<ProjectState>()(
           brandKit,
           globalStylePrompt: buildGlobalStylePrompt(brief),
         });
+        // S6: Analytics opt-in (GDPR-safe). Sin PII — solo sector + count.
+        // Importación diferida para no introducir ciclo si analytics importa projectStore.
+        import('@/services/analytics').then(({ analytics }) => {
+          analytics.record({
+            type: 'brief_completed',
+            sector: brief.business.sector,
+            servicesCount: brief.services.length,
+            timestamp: Date.now(),
+          });
+        }).catch(() => undefined);
       },
 
       resetProject: () => {

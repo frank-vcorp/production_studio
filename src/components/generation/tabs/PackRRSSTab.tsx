@@ -102,6 +102,19 @@ export function PackRRSSTab({ onSwitchToShare }: PackRRSSTabProps): JSX.Element 
         totalMB: result.zip?.totalSizeMB ?? 0,
         timestamp: Date.now(),
       });
+      // S6: Analytics opt-in (GDPR-safe). 1 evento por vídeo exportado.
+      // Sin PII — solo ratio + tamaño en MB.
+      import('@/services/analytics').then(({ analytics }) => {
+        const totalMB = result.zip?.totalSizeMB ?? 0;
+        for (const v of result.videos) {
+          analytics.record({
+            type: 'export_completed',
+            format: v.aspectRatio,
+            sizeMB: Number((totalMB / Math.max(1, result.videos.length)).toFixed(2)),
+            timestamp: Date.now(),
+          });
+        }
+      }).catch(() => undefined);
       addToast({
         kind: 'success',
         message: `Pack RRSS listo: ${result.videos.length} vídeos + ZIP ${result.zip?.totalSizeMB.toFixed(1) ?? 0} MB.`,

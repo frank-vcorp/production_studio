@@ -32,13 +32,16 @@ describe('shareLink', () => {
   });
 
   it('formatShareLinkExpiry retorna "24h" para expiración de 24h', () => {
-    const expiresAt = Date.now() + 24 * 3_600_000;
-    expect(formatShareLinkExpiry(expiresAt)).toBe('24h');
+    // Pasamos un `now` fijo para evitar flake por race condition entre Date.now().
+    const now = 1_700_000_000_000;
+    const expiresAt = now + 24 * 3_600_000;
+    expect(formatShareLinkExpiry(expiresAt, now)).toBe('24h');
   });
 
   it('formatShareLinkExpiry retorna minutos cuando <1h', () => {
-    const expiresAt = Date.now() + 30 * 60_000; // 30 min
-    expect(formatShareLinkExpiry(expiresAt)).toBe('30min');
+    const now = 1_700_000_000_000;
+    const expiresAt = now + 30 * 60_000; // 30 min
+    expect(formatShareLinkExpiry(expiresAt, now)).toBe('30min');
   });
 
   it('cleanup revoca el URL', async () => {

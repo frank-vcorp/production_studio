@@ -26,7 +26,7 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 | **S3** | `IMPL-20260703-03` | `[✓] Completado` | Pack RRSS 4 ratios (9:16, 1:1, 4:5, 16:9) + safe zones | 4-5h |
 | **S4** | `IMPL-20260703-04` | `[~] En Progreso` | Edición granular inline + Prompt Gate v2 + smart concat | 4-5h |
 | **S5** | `IMPL-20260703-05` | `[✓] Completado` | Wizard guiado + templates sector + A11y AA + responsive | 4-5h |
-| **S6** | `IMPL-20260703-06` | `[~] En Progreso` | Tests 80% + CI/CD + Docs completas + analytics opt-in | 3-4h |
+| **S6** | `IMPL-20260703-06` | `[✓] Completado` | Tests 80% + CI/CD + Docs completas + analytics opt-in | 3-4h |
 
 ---
 
@@ -183,14 +183,14 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 | `CHK_2026-07-03_S2.md` | S2 ✅ | 2026-07-03 | `87baf60` | 6/6 tareas, 4 logs verde, 54/54 tests |
 | `CHK_2026-07-03_S3.md` | S3 ✅ | 2026-07-03 | `c64e6a9` | 9/9 tareas, 4 logs verde, 89/89 tests |
 | `CHK_2026-07-04_S4.md` | S4 ✅ | 2026-07-04 | `5731c1e` | 7/7 tareas, 149/149 tests, H1+H2 fixes |
-| `CHK_2026-07-04_S5.md` | S5 ✅ | 2026-07-04 | — | 6/6 tareas, 181/181 tests, 7/7 E2E a11y 0 violations |
+| `CHK_2026-07-04_S5.md` | S5 ✅ | 2026-07-04 | `d04fc27` | 6/6 tareas, 181/181 tests, 7/7 E2E a11y |
+| `CHK_2026-07-04_S6.md` | S6 ✅ | 2026-07-04 | — | 6/6 tareas, 246/246 tests, 11/11 E2E, **85% coverage** |
 
 ---
 
 ## 📌 PRÓXIMA ACCIÓN
 
-**Sprint Actual:** S6 — Tests + CI/CD + Docs + Observabilidad (SPRINT FINAL)  
-**Próxima Tarea:** 6.1 — Coverage tests ≥80% + 4 E2E happy-path Playwright specs  
-**Responsable:** SOFIA (SPEC-S6-TESTS-CICD.md)  
-**Handoff:** `context/interconsultas/S6-handoff.md`  
-**Sprint Previo Cerrado:** S5 → commit `d04fc27` (181 tests + 7 E2E a11y + H1 fix)
+**🏁 PROYECTO CERRADO — v1.0 SHIP-READY**  
+**Última tarea:** Commit final S6 + invocación GEMINI para auditoría final  
+**Roadmap:** 6/6 sprints completados  
+**Métricas:** 246 unit + 11 E2E + 85% coverage + 6 docs + 10 stories + CI/CD + analytics

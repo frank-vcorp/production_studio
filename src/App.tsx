@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import React from 'react';
 import { BriefWizard } from '@/components/brief/BriefWizard';
 import { KeyframeStoryboard } from '@/components/storyboard/KeyframeStoryboard';
 import { PromptApprovalGate } from '@/components/prompt/PromptApprovalGate';
@@ -55,10 +56,60 @@ export function App() {
   const setShowTourOnNextRender = useUIStore((s) => s.setShowTourOnNextRender);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+
+  // S6: Hidratar el estado local de analytics al montar (si el usuario
+  // ya optó-in en una sesión previa, respetamos su preferencia).
+  useEffect(() => {
+    let cancelled = false;
+    import('@/services/analytics').then(({ analytics }) => {
+      if (!cancelled) setAnalyticsEnabled(analytics.isEnabled());
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     checkProxy().catch(() => undefined);
   }, [checkProxy]);
+
+  // S6 §6.6 — Analytics: registrar session_started una vez al montar.
+  // session_ended se registra en beforeunload con duración calculada.
+  const sessionStartRef = React.useRef<number>(Date.now());
+  const sessionIdRef = React.useRef<string>('');
+  useEffect(() => {
+    if (!sessionIdRef.current) {
+      // crypto.randomUUID puede no existir en navegadores antiguos — fallback.
+      sessionIdRef.current =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      import('@/services/analytics').then(({ analytics }) => {
+        analytics.record({
+          type: 'session_started',
+          sessionId: sessionIdRef.current,
+          timestamp: sessionStartRef.current,
+        });
+      }).catch(() => undefined);
+
+      const handleUnload = () => {
+        const durationSec = Math.round((Date.now() - sessionStartRef.current) / 1000);
+        try {
+          const events = JSON.parse(localStorage.getItem('bridge_analytics_events') ?? '[]');
+          events.push({ type: 'session_ended', durationSec, timestamp: Date.now() });
+          // Cap a 100 para mantener consistencia
+          const capped = events.slice(-100);
+          localStorage.setItem('bridge_analytics_events', JSON.stringify(capped));
+        } catch {
+          // ignore
+        }
+      };
+      window.addEventListener('beforeunload', handleUnload);
+      return () => window.removeEventListener('beforeunload', handleUnload);
+    }
+    return undefined;
+  }, []);
 
   // S5: tour hook (se activa sólo cuando hay brief y el flag está activo)
   const tour = useGuidedTour(WIZARD_TOUR_STEPS, () => markTourSeen());
@@ -163,7 +214,7 @@ export function App() {
               <br />
               Worker: <span className="text-sky-300 font-mono">wrangler dev --port 8787</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap items-center">
               <Button variant="secondary" size="sm" onClick={() => checkProxy()} icon="fa-rotate">
                 Re-verificar proxy
               </Button>
@@ -180,6 +231,41 @@ export function App() {
                 Reset proyecto
               </Button>
               <OnboardingResetButton />
+            </div>
+            {/* S6 §6.6 — Privacy tab: analytics opt-in GDPR-safe */}
+            <div
+              className="w-full mt-3 pt-3 border-t border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+              data-testid="privacy-section"
+              role="region"
+              aria-label="Privacidad y analytics"
+            >
+              <div className="text-slate-300">
+                <span className="text-sky-400 font-bold">
+                  <i className="fa-solid fa-shield-halved mr-1" aria-hidden /> Privacidad
+                </span>
+                <span className="text-slate-400 ml-2">
+                  Compartir eventos anónimos nos ayuda a mejorar. Sin PII — solo contadores y sector.
+                </span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="accent-sky-500 h-4 w-4"
+                  data-testid="analytics-optin-toggle"
+                  aria-label="Activar analytics anónimo"
+                  checked={analyticsEnabled}
+                  onChange={(e) => {
+                    const v = e.target.checked;
+                    setAnalyticsEnabled(v);
+                    import('@/services/analytics').then(({ analytics }) => {
+                      analytics.setOptIn(v);
+                    }).catch(() => undefined);
+                  }}
+                />
+                <span className="text-slate-200 font-semibold">
+                  {analyticsEnabled ? 'Activado' : 'Desactivado'}
+                </span>
+              </label>
             </div>
           </div>
         )}

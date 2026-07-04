@@ -350,6 +350,20 @@ class JobQueueServiceImpl {
 
     // Propagar a projectStore para que ExportCenter pueda usar el clip.
     if (job.transitionId) {
+      // S6 §6.6: Analytics opt-in — registrar fallback_activated cuando
+      // se aplicó fallback (imagen estática o color plano) por safety/quota/timeout.
+      if (fallbackUsed && fallbackReason) {
+        import('@/services/analytics')
+          .then(({ analytics }) => {
+            analytics.record({
+              type: 'fallback_activated',
+              reason: String(fallbackReason),
+              ratio: '9:16',
+              timestamp: Date.now(),
+            });
+          })
+          .catch(() => undefined);
+      }
       useProjectStore.setState((s) => {
         const cur = s.transitions.get(job.transitionId!);
         if (!cur) return s;

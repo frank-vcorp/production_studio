@@ -2,7 +2,7 @@
  * cn — concat de className condicional.
  */
 
-type ClassValue = string | number | null | false | undefined | Record<string, boolean | null | undefined> | ClassValue[];
+type ClassValue = string | number | null | false | undefined | Record<string, unknown> | ClassValue[];
 
 export function cn(...inputs: ClassValue[]): string {
   const out: string[] = [];
