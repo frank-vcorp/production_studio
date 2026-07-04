@@ -42,8 +42,12 @@ export default defineConfig({
     format: 'es',
   },
   define: {
-    // Base relativa del proxy; nunca expone keys
-    'import.meta.env.VITE_PROXY_BASE': JSON.stringify('/api/gemini'),
+    // Base del proxy Cloudflare Worker. En dev se sobreescribe via .env.local.
+    // En prod usa VITE_PROXY_BASE (env var Vercel) o fallback al Worker desplegado.
+    // NUNCA expone la Gemini API key — esta se inyecta server-side en el Worker.
+    'import.meta.env.VITE_PROXY_BASE': JSON.stringify(
+      process.env.VITE_PROXY_BASE || 'https://bridge-gemini-proxy.vectoria-pstudio.workers.dev'
+    ),
   },
   test: {
     environment: 'jsdom',

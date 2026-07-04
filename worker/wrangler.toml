@@ -4,7 +4,7 @@ compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:8787,https://studio.tudominio.com"
+ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:8787,https://production-studio-gamma.vercel.app"
 RATE_LIMIT_RPM = "10"
 LOG_LEVEL = "info"
 
