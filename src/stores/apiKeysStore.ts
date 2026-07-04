@@ -36,8 +36,11 @@ export const useApiKeysStore = create<ApiKeysState>()(
       checkProxy: async () => {
         const start = performance.now();
         try {
-          // El endpoint /health vive en el worker; caemos al proxy relative path.
-          const res = await fetch('/health', { method: 'GET' });
+          // /health vive SOLO en el Worker (no en Vercel). Construir URL completa
+          // desde VITE_PROXY_BASE para que el ping verifique el Worker real.
+          const base = (import.meta.env.VITE_PROXY_BASE as string | undefined) ?? '';
+          const healthUrl = base ? `${base.replace(/\/$/, '')}/health` : '/health';
+          const res = await fetch(healthUrl, { method: 'GET' });
           const latency = Math.round(performance.now() - start);
           set({
             proxyConnected: res.ok,

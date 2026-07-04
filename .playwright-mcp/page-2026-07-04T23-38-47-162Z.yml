@@ -1,0 +1,169 @@
+- generic [ref=e3]:
+  - navigation "Accesibilidad" [ref=e4]:
+    - link "Saltar al contenido principal" [ref=e5] [cursor=pointer]:
+      - /url: "#main-content"
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Bridge Creative Engine
+        - heading "S5" [level=1] [ref=e12]:
+          - generic [ref=e13]: S5
+      - generic [ref=e14]:
+        - generic "Sin verificar" [ref=e15]: Sin conexión al proxy
+        - button "Settings"
+  - navigation "Tabs principales" [ref=e17]:
+    - tablist "Secciones de la app" [ref=e18]:
+      - tab "Brief" [selected] [ref=e19] [cursor=pointer]
+      - tab "Storyboard" [ref=e20] [cursor=pointer]
+      - tab "Export" [ref=e21] [cursor=pointer]
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - heading "Brief Wizard" [level=2] [ref=e26]: Brief Wizard
+          - paragraph [ref=e27]: 3 pasos · ~5 min. Tu información se guarda localmente.
+        - tablist "Pasos del wizard" [ref=e28]:
+          - tab "Negocio" [ref=e29]
+          - tab "Fotos Clave" [selected] [ref=e30]
+          - tab "Estilo" [ref=e31]
+      - generic [ref=e33]:
+        - article [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: "Servicio #1"
+            - button "Eliminar servicio Cambio de Aceite Sintético" [ref=e37] [cursor=pointer]: Eliminar
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - generic [ref=e40]: Nombre del servicio
+              - textbox "Nombre del servicio" [ref=e41]:
+                - /placeholder: Hojalatería y Pintura
+                - text: Cambio de Aceite Sintético
+            - generic [ref=e42]:
+              - generic [ref=e43]: Beneficio clave
+              - textbox "Beneficio clave" [ref=e44]:
+                - /placeholder: Restauración exacta color de fábrica
+                - text: Protección garantizada por 15,000 km
+            - generic [ref=e45]:
+              - generic [ref=e46]: Descripción
+              - textbox "Descripción" [ref=e47]: Aceite 5W-30, filtro OEM, revisión de niveles
+            - generic [ref=e48]:
+              - generic [ref=e49]: Precio referencial
+              - textbox "Precio referencial" [ref=e50]:
+                - /placeholder: Desde $X
+                - text: $450 MXN
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - generic [ref=e53]: Atención (gancho 5s)
+              - textbox "Atención (gancho 5s)" [ref=e54]:
+                - /placeholder: ¿Tu auto tiene manchas difíciles?
+                - text: "Primer plano de filtro viejo con aceite quemado en manos. Texto: \"¿Cuándo cambiaste el aceite DE VERDAD?\""
+            - generic [ref=e55]:
+              - generic [ref=e56]: Interés (5-15s)
+              - textbox "Interés (5-15s)" [ref=e57]:
+                - /placeholder: Abrimos cabina presurizada con lavados profundos
+                - text: Recorrido por boxes limpios, pared de aceites ordenada con certificación ISO visible
+            - generic [ref=e58]:
+              - generic [ref=e59]: Deseo (15-25s)
+              - textbox "Deseo (15-25s)" [ref=e60]:
+                - /placeholder: Recuperamos textura original de fábrica
+                - text: "Aceite dorado nuevo fluyendo por el motor. Métrica visible: \"15,000 km garantizado\""
+            - generic [ref=e61]:
+              - generic [ref=e62]: Acción (CTA)
+              - textbox "Acción (CTA)" [ref=e63]:
+                - /placeholder: Agenda tu cotización por WhatsApp hoy
+                - text: Tarjeta final con logo + WhatsApp + Maps + fondo del taller real
+        - article [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: "Servicio #2"
+            - button "Eliminar servicio Frenos y Suspensión" [ref=e67] [cursor=pointer]: Eliminar
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - generic [ref=e70]: Nombre del servicio
+              - textbox "Nombre del servicio" [ref=e71]:
+                - /placeholder: Hojalatería y Pintura
+                - text: Frenos y Suspensión
+            - generic [ref=e72]:
+              - generic [ref=e73]: Beneficio clave
+              - textbox "Beneficio clave" [ref=e74]:
+                - /placeholder: Restauración exacta color de fábrica
+                - text: Recuperá el control y la seguridad de tu auto
+            - generic [ref=e75]:
+              - generic [ref=e76]: Descripción
+              - textbox "Descripción" [ref=e77]: Balatas, discos, amortiguadores, alineación
+            - generic [ref=e78]:
+              - generic [ref=e79]: Precio referencial
+              - textbox "Precio referencial" [ref=e80]:
+                - /placeholder: Desde $X
+                - text: Desde $1,200 MXN
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e83]: Atención (gancho 5s)
+              - textbox "Atención (gancho 5s)" [ref=e84]:
+                - /placeholder: ¿Tu auto tiene manchas difíciles?
+                - text: Mano apretando el volante con luz de freno encendida en el tablero
+            - generic [ref=e85]:
+              - generic [ref=e86]: Interés (5-15s)
+              - textbox "Interés (5-15s)" [ref=e87]:
+                - /placeholder: Abrimos cabina presurizada con lavados profundos
+                - text: "Comparación lado a lado: balata gastada vs balata nueva brillante"
+            - generic [ref=e88]:
+              - generic [ref=e89]: Deseo (15-25s)
+              - textbox "Deseo (15-25s)" [ref=e90]:
+                - /placeholder: Recuperamos textura original de fábrica
+                - text: Auto frenando en curva con humo mínimo, conductor tranquilo sonriendo
+            - generic [ref=e91]:
+              - generic [ref=e92]: Acción (CTA)
+              - textbox "Acción (CTA)" [ref=e93]:
+                - /placeholder: Agenda tu cotización por WhatsApp hoy
+                - text: "Pantalla dividida: precio desde $1,200 + WhatsApp directo"
+        - article [ref=e94]:
+          - generic [ref=e95]:
+            - generic [ref=e96]: "Servicio #3"
+            - button "Eliminar servicio Pintura y Enderezada" [ref=e97] [cursor=pointer]: Eliminar
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - generic [ref=e100]: Nombre del servicio
+              - textbox "Nombre del servicio" [ref=e101]:
+                - /placeholder: Hojalatería y Pintura
+                - text: Pintura y Enderezada
+            - generic [ref=e102]:
+              - generic [ref=e103]: Beneficio clave
+              - textbox "Beneficio clave" [ref=e104]:
+                - /placeholder: Restauración exacta color de fábrica
+                - text: Restauramos tu auto como recién salido de agencia
+            - generic [ref=e105]:
+              - generic [ref=e106]: Descripción
+              - textbox "Descripción" [ref=e107]: Pintura base agua, igualación de color, pulido
+            - generic [ref=e108]:
+              - generic [ref=e109]: Precio referencial
+              - textbox "Precio referencial" [ref=e110]:
+                - /placeholder: Desde $X
+                - text: Cotización por pieza
+          - generic [ref=e111]:
+            - generic [ref=e112]:
+              - generic [ref=e113]: Atención (gancho 5s)
+              - textbox "Atención (gancho 5s)" [ref=e114]:
+                - /placeholder: ¿Tu auto tiene manchas difíciles?
+                - text: "Antes/después impactante: golpe visible vs pintura impecable con reflejo"
+            - generic [ref=e115]:
+              - generic [ref=e116]: Interés (5-15s)
+              - textbox "Interés (5-15s)" [ref=e117]:
+                - /placeholder: Abrimos cabina presurizada con lavados profundos
+                - text: Cabina de pintura con luz blanca, técnico con uniforme aplicando pistola
+            - generic [ref=e118]:
+              - generic [ref=e119]: Deseo (15-25s)
+              - textbox "Deseo (15-25s)" [ref=e120]:
+                - /placeholder: Recuperamos textura original de fábrica
+                - text: Reflejo perfecto del técnico en la puerta recién pintada, gotas de agua resbalando
+            - generic [ref=e121]:
+              - generic [ref=e122]: Acción (CTA)
+              - textbox "Acción (CTA)" [ref=e123]:
+                - /placeholder: Agenda tu cotización por WhatsApp hoy
+                - text: Cierre con logo del taller + QR a calculadora de cotización
+        - button "Agregar servicio" [ref=e124] [cursor=pointer]
+      - generic [ref=e125]:
+        - generic [ref=e126]: Paso 2 de 3
+        - generic [ref=e127]:
+          - button "Atrás" [ref=e128] [cursor=pointer]
+          - button "Siguiente" [ref=e129] [cursor=pointer]
+  - contentinfo [ref=e130]:
+    - generic [ref=e131]: Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · 2026

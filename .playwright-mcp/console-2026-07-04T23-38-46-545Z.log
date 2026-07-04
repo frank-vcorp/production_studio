@@ -1,0 +1,3 @@
+[     619ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/health:0
+[     637ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/favicon.svg:0
+[   12912ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/health:0
