@@ -18,6 +18,10 @@ export interface SmartConcatOpts {
   blobs: { role: string; blob: Blob }[];
   timelineOrder: string[];
   outputName?: string;
+  /** H2-fix: subs quemados opcionales (filter chain VTT→ASS). */
+  burnedSubs?: { vttContent: string; style: import('@/types/project').SubtitleStyle };
+  /** H2-fix: music bed opcional (mix con ducking + fade in/out). */
+  musicBed?: Blob;
 }
 
 export interface BurnSubsOpts {
@@ -117,7 +121,19 @@ class FFmpegServiceImpl {
 
   async smartConcat(opts: SmartConcatOpts): Promise<Blob> {
     await this.init();
-    return this.send<Blob>('SMART_CONCAT', opts, opts.outputName ?? 'master.mp4');
+    // H2-fix: separar burnedSubs (objeto) y musicBed (Blob→ArrayBuffer) para
+    // que crucen structured-clone del postMessage al WebWorker.
+    const payload: Record<string, unknown> = {
+      blobs: opts.blobs,
+      timelineOrder: opts.timelineOrder,
+    };
+    if (opts.burnedSubs) {
+      payload.burnedSubs = opts.burnedSubs;
+    }
+    if (opts.musicBed) {
+      payload.musicBed = await opts.musicBed.arrayBuffer();
+    }
+    return this.send<Blob>('SMART_CONCAT', payload, opts.outputName ?? 'master.mp4');
   }
 
   /** Convierte una imagen estática en un MP4 de duración fija. */

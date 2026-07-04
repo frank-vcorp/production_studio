@@ -78,6 +78,7 @@ export function MasterTab(): JSX.Element {
   const manifest = useProjectStore((s) => s.manifest);
   const brief = useProjectStore((s) => s.brief);
   const addToast = useUIStore((s) => s.addToast);
+  const openSplitView = useUIStore((s) => s.openSplitView);
   const [progress, setProgress] = useState<{ stage: string; pct: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [costModalOpen, setCostModalOpen] = useState(false);
@@ -303,6 +304,29 @@ export function MasterTab(): JSX.Element {
             <Button variant="secondary" icon="fa-file-code" onClick={handleDownloadManifest}>
               Descargar manifest.json
             </Button>
+          </div>
+
+          {/* S4 — Edición granular por clip */}
+          <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
+            <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
+              <i className="fa-solid fa-sliders text-sky-400" /> Edición granular por nodo
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {Array.from(transitions.values())
+                .filter((t) => t.status === 'done' || t.status === 'approved')
+                .map((t) => (
+                  <Button
+                    key={t.id}
+                    variant="secondary"
+                    size="sm"
+                    icon="fa-pen-to-square"
+                    data-testid={`edit-node-${t.nodeKey}`}
+                    onClick={() => openSplitView(t.id)}
+                  >
+                    Editar {t.nodeKey}
+                  </Button>
+                ))}
+            </div>
           </div>
         </div>
       ) : (

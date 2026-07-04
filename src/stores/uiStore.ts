@@ -11,6 +11,7 @@ export const useUIStore = create<UIState>()((set) => ({
   briefStep: 0,
   toasts: [],
   exportCenterOpen: false,
+  splitViewTransitionId: null,
 
   setStep: (step) => set({ currentStep: step }),
   setBriefStep: (n) => set({ briefStep: Math.max(0, Math.min(3, n)) }),
@@ -31,4 +32,7 @@ export const useUIStore = create<UIState>()((set) => ({
 
   openExportCenter: () => set({ exportCenterOpen: true }),
   closeExportCenter: () => set({ exportCenterOpen: false }),
+
+  openSplitView: (transitionId) => set({ splitViewTransitionId: transitionId }),
+  closeSplitView: () => set({ splitViewTransitionId: null }),
 }));

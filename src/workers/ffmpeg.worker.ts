@@ -55,6 +55,21 @@ interface SmartConcatMsg extends BaseMsg {
   payload: {
     blobs: { role: string; blob: Blob }[];
     timelineOrder: string[];
+    /** H2-fix: subs quemados opcionales. */
+    burnedSubs?: {
+      vttContent: string;
+      style: {
+        fontFamily: string;
+        fontSize: number;
+        color: string;
+        outline: number;
+        shadow: number;
+        marginV: number;
+        bold: boolean;
+      };
+    };
+    /** H2-fix: music bed (ArrayBuffer para cruzar postMessage structured-clone). */
+    musicBed?: ArrayBuffer;
   };
   outputName?: string;
 }
@@ -275,15 +290,101 @@ async function execSmartConcat(msg: SmartConcatMsg) {
     })
     .filter((l): l is string => l !== null);
   await ffmpeg.writeFile('filelist.txt', new TextEncoder().encode(lines.join('\n')));
-  await ffmpeg.exec([
-    '-f', 'concat', '-safe', '0',
-    '-i', 'filelist.txt',
-    '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
-    '-c:a', 'aac', '-b:a', '128k',
-    '-movflags', '+faststart',
-    '-t', '30',
-    outputName,
-  ]);
+
+  // H2-fix: escribir subs.vtt y music.wav a MEMFS si vienen como opcionales
+  const hasSubs = Boolean(payload.burnedSubs);
+  const hasMusic = Boolean(payload.musicBed);
+
+  if (hasSubs && payload.burnedSubs) {
+    await ffmpeg.writeFile('subs.vtt', new TextEncoder().encode(payload.burnedSubs.vttContent));
+  }
+  if (hasMusic && payload.musicBed) {
+    await ffmpeg.writeFile('music.wav', new Uint8Array(payload.musicBed));
+  }
+
+  // H2-fix: construir filter chain dinámico.
+  // Escenario A: solo subs → usar -vf subtitles=...
+  // Escenario B: solo music → usar -filter_complex con amix + fade
+  // Escenario C: ambos → -filter_complex combina subs (al video) + amix (al audio)
+  // Escenario D: ninguno → comportamiento original (sin filtros)
+  const args: string[] = ['-f', 'concat', '-safe', '0', '-i', 'filelist.txt'];
+
+  if (hasMusic) {
+    args.push('-i', 'music.wav');
+  }
+
+  if (hasSubs && payload.burnedSubs) {
+    const s = payload.burnedSubs.style;
+    const forceStyle = [
+      `FontName=${s.fontFamily}`,
+      `FontSize=${s.fontSize}`,
+      `PrimaryColour=${hexToASS(s.color)}`,
+      `Outline=${s.outline}`,
+      `Shadow=${s.shadow}`,
+      `MarginV=${s.marginV}`,
+      `Alignment=2`,
+      `Bold=${s.bold ? 1 : 0}`,
+    ].join(',');
+    const subFilter = `subtitles=subs.vtt:force_style='${forceStyle}'`;
+
+    if (hasMusic) {
+      // Filter complex: video[0]→subs→[v], audio[0]→[a1], audio[1]→fade+volume→[a2], amix
+      const fc = [
+        `[0:v]${subFilter}[v]`,
+        '[0:a]anull[a1]',
+        '[1:a]volume=0.3,afade=t=in:st=0:d=2,afade=t=out:st=28:d=2[a2]',
+        '[a1][a2]amix=inputs=2:duration=first[aout]',
+      ].join(';');
+      args.push(
+        '-filter_complex', fc,
+        '-map', '[v]',
+        '-map', '[aout]',
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
+        '-c:a', 'aac', '-b:a', '128k',
+        '-movflags', '+faststart',
+        '-t', '30',
+        '-y', outputName,
+      );
+    } else {
+      args.push(
+        '-vf', subFilter,
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
+        '-c:a', 'aac', '-b:a', '128k',
+        '-movflags', '+faststart',
+        '-t', '30',
+        '-y', outputName,
+      );
+    }
+  } else if (hasMusic) {
+    // Solo music: amix con ducking
+    const fc = [
+      '[0:v]null[v]',
+      '[0:a]anull[a1]',
+      '[1:a]volume=0.3,afade=t=in:st=0:d=2,afade=t=out:st=28:d=2[a2]',
+      '[a1][a2]amix=inputs=2:duration=first[aout]',
+    ].join(';');
+    args.push(
+      '-filter_complex', fc,
+      '-map', '[v]',
+      '-map', '[aout]',
+      '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
+      '-c:a', 'aac', '-b:a', '128k',
+      '-movflags', '+faststart',
+      '-t', '30',
+      '-y', outputName,
+    );
+  } else {
+    // Sin subs ni music: comportamiento original
+    args.push(
+      '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
+      '-c:a', 'aac', '-b:a', '128k',
+      '-movflags', '+faststart',
+      '-t', '30',
+      outputName,
+    );
+  }
+
+  await ffmpeg.exec(args);
   const data = await ffmpeg.readFile(outputName);
   const { blob, transfer } = toResultBlob(data);
   self.postMessage({ type: 'RESULT', requestId: msg.requestId, payload: blob }, [transfer]);

@@ -3,6 +3,7 @@ import { BriefWizard } from '@/components/brief/BriefWizard';
 import { KeyframeStoryboard } from '@/components/storyboard/KeyframeStoryboard';
 import { PromptApprovalGate } from '@/components/prompt/PromptApprovalGate';
 import { ExportCenter } from '@/components/generation/ExportCenter';
+import { SplitViewHost } from '@/components/generation/SplitViewHost';
 import { ToastContainer } from '@/components/common/Toasts';
 import { Button } from '@/components/common/Button';
 import { useProjectStore } from '@/stores/projectStore';
@@ -135,6 +136,7 @@ export function App() {
       </main>
 
       <PromptApprovalGate />
+      <SplitViewHost />
       <ToastContainer />
 
       <footer className="border-t border-slate-800 px-4 md:px-6 py-4 text-center text-[11px] text-slate-500">

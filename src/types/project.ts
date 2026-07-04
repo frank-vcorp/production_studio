@@ -189,10 +189,14 @@ export interface UIState {
   briefStep: number;       // 0..3 dentro del wizard
   toasts: Toast[];
   exportCenterOpen: boolean;
+  /** S4 — id de la transición cuyo SplitViewEditor está abierto (null si ninguno). */
+  splitViewTransitionId: string | null;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   dismissToast: (id: string) => void;
   setStep: (step: UIState['currentStep']) => void;
   setBriefStep: (n: number) => void;
   openExportCenter: () => void;
   closeExportCenter: () => void;
+  openSplitView: (transitionId: string) => void;
+  closeSplitView: () => void;
 }

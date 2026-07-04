@@ -42,6 +42,7 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
   const approveKeyframe = useProjectStore((s) => s.approveKeyframe);
   const setKeyframeIntent = useProjectStore((s) => s.setKeyframeIntent);
   const transitions = useProjectStore((s) => s.transitions);
+  const openSplitView = useUIStore((s) => s.openSplitView);
   const addToast = useUIStore((s) => s.addToast);
 
   const status: KeyframeStatus = kf?.status ?? 'empty';
@@ -83,6 +84,7 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
   // Encontrar transición saliente
   const outgoing = Array.from(transitions.values()).find((t) => t.fromKeyframe === kf?.id);
   const canGenerateClip = outgoing && outgoing.status === 'pending';
+  const canEditGranular = outgoing && (outgoing.status === 'done' || outgoing.status === 'approved' || outgoing.status === 'failed');
 
   const handleGenerateClip = useCallback(() => {
     if (!outgoing) {
@@ -91,6 +93,14 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
     }
     openPromptGate(outgoing.id);
   }, [outgoing, openPromptGate, addToast]);
+
+  const handleEditGranular = useCallback(() => {
+    if (!outgoing) {
+      addToast({ kind: 'warning', message: 'No hay transición saliente todavía.' });
+      return;
+    }
+    openSplitView(outgoing.id);
+  }, [outgoing, openSplitView, addToast]);
 
   return (
     <article
@@ -162,6 +172,17 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
         {canGenerateClip && (
           <Button variant="primary" size="sm" icon="fa-wand-magic-sparkles" onClick={handleGenerateClip}>
             Generar clip
+          </Button>
+        )}
+        {canEditGranular && (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="fa-sliders"
+            onClick={handleEditGranular}
+            data-testid={`edit-granular-${role}`}
+          >
+            Editar nodo
           </Button>
         )}
       </div>
