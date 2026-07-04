@@ -73,7 +73,57 @@ interface StaticFromImageMsg extends BaseMsg {
   outputName?: string;
 }
 
-type WorkerMsg = InitMsg | ConcatMsg | BurnSubsMsg | MixAudioMsg | SmartConcatMsg | StaticFromImageMsg | TerminateMsg;
+/**
+ * S3 — EXPORT_RATIO: encodea el master a un ratio específico con opcionales
+ * (subtítulos quemados + watermark PNG).
+ *
+ * payload (S3ExportPreset completo del maestro proyecto):
+ *   - masterBlob: Blob de master.mp4 (input)
+ *   - preset: { width, height, bitrate, audioBitrate, ... }
+ *   - burnSubs: { vtt: string; fontFamily, fontSize, color, ... } | null
+ *   - watermark: { base64Png: string; opacity, position } | null
+ *
+ * outputName se sugiere `output_${preset.aspectRatio.replace(':','x')}.mp4`.
+ */
+interface ExportRatioMsg extends BaseMsg {
+  type: 'EXPORT_RATIO';
+  payload: {
+    masterBlob: Blob;
+    preset: {
+      aspectRatio: '9:16' | '1:1' | '4:5' | '16:9';
+      width: number;
+      height: number;
+      bitrate: number;
+      audioBitrate: number;
+    };
+    burnSubs: {
+      vtt: string;
+      fontFamily: string;
+      fontSize: number;
+      color: string;
+      outline: number;
+      shadow: number;
+      marginV: number;
+      bold: boolean;
+    } | null;
+    watermark: {
+      base64Png: string;
+      opacity: number;
+      position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+    } | null;
+  };
+  outputName?: string;
+}
+
+type WorkerMsg =
+  | InitMsg
+  | ConcatMsg
+  | BurnSubsMsg
+  | MixAudioMsg
+  | SmartConcatMsg
+  | StaticFromImageMsg
+  | ExportRatioMsg
+  | TerminateMsg;
 
 const CORE_BASE = '/ffmpeg-core';
 
@@ -260,6 +310,79 @@ async function execStaticFromImage(msg: StaticFromImageMsg) {
   self.postMessage({ type: 'RESULT', requestId: msg.requestId, payload: blob }, [transfer]);
 }
 
+/** Decodifica base64 PNG a bytes para ffmpeg.writeFile(). */
+function base64ToBytes(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** S3 — encode master a un ratio específico con filtros opcionales. */
+async function execExportRatio(msg: ExportRatioMsg) {
+  await ensureLoaded();
+  if (!ffmpeg) throw new Error('FFmpeg no inicializado');
+  const { payload, outputName = 'output.mp4' } = msg;
+  const { masterBlob, preset, burnSubs, watermark } = payload;
+
+  await ffmpeg.writeFile('master.mp4', await fetchFile(masterBlob));
+
+  const args: string[] = ['-i', 'master.mp4'];
+
+  // Scale + pad (preserve aspect, center black bars)
+  // Force aspect decrease → may letterbox; for cover/center we use pad.
+  const filters: string[] = [
+    `scale=${preset.width}:${preset.height}:force_original_aspect_ratio=decrease:flags=lanczos`,
+    `pad=${preset.width}:${preset.height}:(ow-iw)/2:(oh-ih)/2:color=black@0`,
+    'format=yuv420p',
+  ];
+
+  // Quemar subs si vienen
+  if (burnSubs) {
+    await ffmpeg.writeFile('subs.vtt', new TextEncoder().encode(burnSubs.vtt));
+    const forceStyle = [
+      `FontName=${burnSubs.fontFamily}`,
+      `FontSize=${burnSubs.fontSize}`,
+      `PrimaryColour=${hexToASS(burnSubs.color)}`,
+      `Outline=${burnSubs.outline}`,
+      `Shadow=${burnSubs.shadow}`,
+      `MarginV=${burnSubs.marginV}`,
+      `Alignment=2`,
+      `Bold=${burnSubs.bold ? 1 : 0}`,
+    ].join(',');
+    filters.push(`subtitles=subs.vtt:force_style='${forceStyle}'`);
+  }
+
+  // Watermark si viene (PNG por transparencia, format=auto detecta extensión)
+  if (watermark) {
+    await ffmpeg.writeFile('wm.png', base64ToBytes(watermark.base64Png));
+    args.push('-i', 'wm.png');
+    // Posición: se pasa como overlay coords
+    const margin = 30;
+    let overlayPos = '';
+    switch (watermark.position) {
+      case 'top-left': overlayPos = `${margin}:${margin}`; break;
+      case 'top-right': overlayPos = `W-w-${margin}:${margin}`; break;
+      case 'bottom-left': overlayPos = `${margin}:H-h-${margin}`; break;
+      case 'bottom-right':
+      default: overlayPos = `W-w-${margin}:H-h-${margin}`; break;
+    }
+    // format=auto (auto-detect pixel format del PNG con alpha)
+    filters.push(`overlay=${overlayPos}:format=auto`);
+  }
+
+  args.push('-vf', filters.join(','));
+  args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-b:v', `${preset.bitrate}k`);
+  args.push('-c:a', 'aac', '-b:a', `${preset.audioBitrate}k`);
+  args.push('-movflags', '+faststart');
+  args.push('-y', outputName);
+
+  await ffmpeg.exec(args);
+  const data = await ffmpeg.readFile(outputName);
+  const { blob, transfer } = toResultBlob(data);
+  self.postMessage({ type: 'RESULT', requestId: msg.requestId, payload: blob }, [transfer]);
+}
+
 self.onmessage = async (event: MessageEvent<WorkerMsg>) => {
   const msg = event.data;
   try {
@@ -282,6 +405,9 @@ self.onmessage = async (event: MessageEvent<WorkerMsg>) => {
         break;
       case 'STATIC_FROM_IMAGE':
         await execStaticFromImage(msg);
+        break;
+      case 'EXPORT_RATIO':
+        await execExportRatio(msg);
         break;
       case 'TERMINATE':
         if (ffmpeg) ffmpeg.terminate();

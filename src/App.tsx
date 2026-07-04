@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BriefWizard } from '@/components/brief/BriefWizard';
 import { KeyframeStoryboard } from '@/components/storyboard/KeyframeStoryboard';
 import { PromptApprovalGate } from '@/components/prompt/PromptApprovalGate';
-import { ExportCenter } from '@/components/export/ExportCenter';
+import { ExportCenter } from '@/components/generation/ExportCenter';
 import { ToastContainer } from '@/components/common/Toasts';
 import { Button } from '@/components/common/Button';
 import { useProjectStore } from '@/stores/projectStore';

@@ -1,17 +1,21 @@
 /**
  * fallbackStrategy — jerarquía de fallback para Veo fallido.
- * Spec: SPEC-S2-ROBUSTNESS §Tarea 2.4.
+ * Spec: SPEC-S2-ROBUSTNESS §Tarea 2.4 + S3 §Tarea 3.8 + 3.9.
  *
- * Cuando Veo falla por safety/quota/timeout/network:
- *   Strategy 1: imagen estática + slow zoom (imagen keyframe + ffmpeg zoompan)
- *   Strategy 2: plain color con texto (gradient + label del nodo)
+ * Cuando Veo falla por safety/quota/timeout/unknown:
+ *   Strategy 1: imagen estática + slow zoom (imagen keyframe + ffmpeg static)
+ *   Strategy 2: plain color con texto (gradient + label del nodo) — usa brandColor si se pasa
  *
  * Si Strategy 1 falla → Strategy 2.
  * Si Strategy 2 falla → throw (no recoverable).
+ *
+ * S3 3.9: emite evento `fallback_activated` vía telemetry service (opt-in,
+ * silencioso si no hay opt-in).
  */
 
 import { ffmpegService } from './ffmpeg';
 import { generateKeyframeOut } from './gemini/keyframeGenerator';
+import { telemetry } from './telemetry';
 import type { KeyframeTransition } from '@/types/transition';
 import type { Keyframe } from '@/types/keyframe';
 import type { MasterBrief } from '@/types/brief';
@@ -55,6 +59,24 @@ export interface FallbackInput {
   keyframeTo: Keyframe | null;
   reason: FallbackReason;
   brief: MasterBrief | null;
+  /** S3 3.8 — color hex de marca para Strategy 2; default '#0b0f19' (slate-950). */
+  brandColor?: string;
+}
+
+/** Helper: emite evento telemetry si el opt-in está activo. No-op si no. */
+function emitFallbackTelemetry(
+  transitionId: string,
+  reason: FallbackReason,
+  strategy: FallbackStrategy,
+): void {
+  telemetry.record({
+    type: 'fallback_activated',
+    jobId: transitionId,
+    reason,
+    ratio: '9:16', // fallback aplica al master 9:16 generado por S1/S2
+    strategy,
+    timestamp: Date.now(),
+  });
 }
 
 /**
@@ -62,7 +84,7 @@ export interface FallbackInput {
  * Devuelve un Blob reproducible + metadatos para telemetría.
  */
 export async function generateFallbackVideo(input: FallbackInput): Promise<FallbackResult> {
-  const { transition, keyframeFrom, reason, brief } = input;
+  const { transition, keyframeFrom, reason, brief, brandColor } = input;
   const log: string[] = [`Fallback activado: motivo=${reason}`];
 
   // Strategy 1: imagen estática con slow zoom (keyframeFrom como base).
@@ -94,6 +116,7 @@ export async function generateFallbackVideo(input: FallbackInput): Promise<Fallb
 
     const video = await ffmpegService.staticVideoFromImage(baseBlob, transition.duration);
     log.push('Success: Static video generated');
+    emitFallbackTelemetry(transition.id, reason, 'imagen3_blur_zoom');
     return { blob: video, strategy: 'imagen3_blur_zoom', reason, generationLog: log };
   } catch (e1) {
     log.push(`Strategy 1 failed: ${(e1 as Error).message}`);
@@ -103,12 +126,13 @@ export async function generateFallbackVideo(input: FallbackInput): Promise<Fallb
   // Strategy 2: plain color con texto del nodo.
   try {
     log.push('Strategy 2: Plain color with subtitle');
-    // FFmpeg service no expone staticColorWithText; lo simulamos reutilizando
-    // staticVideoFromImage con un PNG 1x1 del color de marca.
-    const color = pickBrandColor(input);
+    // S3 3.8: brandColor override (default '#0b0f19')
+    const color = brandColor ?? pickBrandColor(input);
+    log.push(`Strategy 2 color=${color}`);
     const colorImg = await colorImageBlob(color);
     const video = await ffmpegService.staticVideoFromImage(colorImg, transition.duration);
     log.push('Success: Plain-color fallback generated');
+    emitFallbackTelemetry(transition.id, reason, 'plain_color_with_text');
     return { blob: video, strategy: 'plain_color_with_text', reason, generationLog: log };
   } catch (e2) {
     log.push(`Strategy 2 failed: ${(e2 as Error).message}`);
@@ -122,11 +146,8 @@ function pickBrandColor(_input: FallbackInput): string {
   return '#0b0f19';
 }
 
-/** Genera un PNG 1x1 del color hex dado (FFmpeg lo escalará al output final). */
+/** Genera un PNG del color hex dado via Canvas (FFmpeg lo escala al output final). */
 async function colorImageBlob(hex: string): Promise<Blob> {
-  void hex; // hex ya se usa en la rama canvas; rama fallback usa PNG pre-built
-  // 1x1 PNG of given RGB. Pre-built base64 de un PNG 1x1 negro; reemplazamos
-  // el IDAT sería costoso, así que usamos Canvas API si está disponible.
   if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
@@ -143,7 +164,7 @@ async function colorImageBlob(hex: string): Promise<Blob> {
       });
     }
   }
-  // Fallback para entornos sin DOM (workers): devolver PNG 1x1 negro pre-built.
+  // Fallback para entornos sin DOM (workers): PNG 1x1 negro pre-built.
   const PNG_1x1_BLACK =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII=';
   const binary = atob(PNG_1x1_BLACK);
