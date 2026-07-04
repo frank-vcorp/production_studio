@@ -19,6 +19,7 @@ import { cycleNodeEditTab, type NodeEditTab } from '@/components/generation/node
 import { VersionHistory } from '@/components/generation/VersionHistory';
 import { PromptEditorV2 } from '@/components/prompt/PromptEditorV2';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { Button } from '@/components/common/Button';
 import { cn } from '@/utils/cn';
 
@@ -96,6 +97,10 @@ export function SplitViewEditor({
   const [draftPrompt, setDraftPrompt] = useState(promptVersion.prompt);
   const [busyApprove, setBusyApprove] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // S5: focus trap activa — Tab cicla dentro del modal.
+  useFocusTrap(true, dialogRef);
 
   // Persist split cuando no se está arrastrando
   useEffect(() => {
@@ -154,10 +159,11 @@ export function SplitViewEditor({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-2"
       role="dialog"
       aria-modal="true"
-      aria-label="Editor granular de nodo"
+      aria-labelledby="split-view-editor-title"
       data-testid="split-view-editor"
     >
       <div className="w-full h-full max-w-[1400px] max-h-[94vh] bg-slate-900 border border-sky-500/30 rounded-2xl overflow-hidden flex flex-col">
@@ -166,7 +172,7 @@ export function SplitViewEditor({
           <div className="flex items-center gap-3 min-w-0">
             <i className="fa-solid fa-sliders text-sky-400 shrink-0" />
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-white truncate">
+              <h2 id="split-view-editor-title" className="text-base font-bold text-white truncate">
                 Editor Granular — {NODE_LABEL[transition.nodeKey]}
               </h2>
               <p className="text-[10px] text-slate-400 truncate">

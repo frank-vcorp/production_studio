@@ -1,3 +1,16 @@
+/**
+ * App.tsx — entry component S1 + S5 enhancements.
+ *
+ * S1: Tabs (Brief/Storyboard/Export) + Header + Wizard + Storyboard + Export.
+ * S5: LandingPage condicional + Guided Tour + SkipLink + landmarks + BottomNav +
+ *     OnboardingResetButton + integration con uiStore.hasSeenTour.
+ *
+ * Si !brief → muestra LandingPage (only para "nuevo" usuario).
+ * Si brief → muestra MainApp con tabs + modales + toasts.
+ *
+ * ID: IMPL-20260704-05.
+ */
+
 import { useEffect, useState } from 'react';
 import { BriefWizard } from '@/components/brief/BriefWizard';
 import { KeyframeStoryboard } from '@/components/storyboard/KeyframeStoryboard';
@@ -6,10 +19,18 @@ import { ExportCenter } from '@/components/generation/ExportCenter';
 import { SplitViewHost } from '@/components/generation/SplitViewHost';
 import { ToastContainer } from '@/components/common/Toasts';
 import { Button } from '@/components/common/Button';
+import { SkipLink } from '@/components/common/SkipLink';
+import { BottomNav } from '@/components/common/BottomNav';
+import { OnboardingResetButton } from '@/components/landing/OnboardingResetButton';
+import { LandingPage } from '@/components/landing/LandingPage';
+import { useGuidedTour } from '@/components/landing/GuidedTour';
+import { WIZARD_TOUR_STEPS } from '@/components/landing/wizardTourSteps';
 import { useProjectStore } from '@/stores/projectStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useApiKeysStore } from '@/stores/apiKeysStore';
+import { applySectorTemplate } from '@/utils/sectorTemplate';
 import { cn } from '@/utils/cn';
+import type { SectorId } from '@/types/sector';
 
 type TabId = 'brief' | 'storyboard' | 'export';
 
@@ -23,10 +44,15 @@ export function App() {
   const step = useUIStore((s) => s.currentStep);
   const setStep = useUIStore((s) => s.setStep);
   const brief = useProjectStore((s) => s.brief);
+  const loadBrief = useProjectStore((s) => s.loadBrief);
   const resetProject = useProjectStore((s) => s.resetProject);
   const proxyConnected = useApiKeysStore((s) => s.proxyConnected);
   const checkProxy = useApiKeysStore((s) => s.checkProxy);
   const lastCheckedAt = useApiKeysStore((s) => s.lastCheckedAt);
+  const hasSeenTour = useUIStore((s) => s.hasSeenTour);
+  const showTourOnNextRender = useUIStore((s) => s.showTourOnNextRender);
+  const markTourSeen = useUIStore((s) => s.markTourSeen);
+  const setShowTourOnNextRender = useUIStore((s) => s.setShowTourOnNextRender);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -34,10 +60,60 @@ export function App() {
     checkProxy().catch(() => undefined);
   }, [checkProxy]);
 
+  // S5: tour hook (se activa sólo cuando hay brief y el flag está activo)
+  const tour = useGuidedTour(WIZARD_TOUR_STEPS, () => markTourSeen());
+
+  // Si el usuario clickeó "Iniciar tour guiado" en LandingPage, lanzar al montar MainApp
+  useEffect(() => {
+    if (brief && showTourOnNextRender) {
+      // Pequeño delay para que el DOM de los data-tour esté montado
+      const id = setTimeout(() => {
+        tour.start();
+        setShowTourOnNextRender(false);
+      }, 250);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [brief, showTourOnNextRender, tour, setShowTourOnNextRender]);
+
+  // ── LandingPage si NO hay brief (nuevo usuario) ──
+  if (!brief) {
+    return (
+      <>
+        <SkipLink />
+        <LandingPage
+          hasSeenTour={hasSeenTour}
+          onCreateSpot={() => {
+            // Crea brief vacío para abrir el wizard
+            const empty = applySectorTemplate('otro');
+            loadBrief(empty);
+            markTourSeen();
+          }}
+          onStartTour={() => {
+            // Carga brief vacío y marca flag para lanzar tour tras montar wizard
+            const empty = applySectorTemplate('otro');
+            loadBrief(empty);
+            markTourSeen();
+            setShowTourOnNextRender(true);
+          }}
+          onSelectSector={(sector: SectorId) => {
+            const seeded = applySectorTemplate(sector);
+            loadBrief(seeded);
+            markTourSeen();
+          }}
+        />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // ── MainApp: usuario con brief cargado ──
   return (
     <div className="min-h-screen flex flex-col carbon-bg">
+      <SkipLink />
+
       {/* HEADER */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 md:px-6 py-4">
+      <header role="banner" className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 md:px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-sky-500/10 flex items-center justify-center border border-sky-500/30">
@@ -50,7 +126,7 @@ export function App() {
               <h1 className="text-lg md:text-xl font-extrabold text-white flex items-center gap-2">
                 {brief?.business.name ?? 'Nuevo Estudio'}
                 <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-mono">
-                  S1
+                  S5
                 </span>
               </h1>
             </div>
@@ -73,6 +149,7 @@ export function App() {
               onClick={() => setSettingsOpen((v) => !v)}
               className="text-slate-400 hover:text-white"
               aria-label="Settings"
+              aria-expanded={settingsOpen}
             >
               <i className="fa-solid fa-gear text-lg" />
             </button>
@@ -102,23 +179,26 @@ export function App() {
               >
                 Reset proyecto
               </Button>
+              <OnboardingResetButton />
             </div>
           </div>
         )}
       </header>
 
       {/* TABS */}
-      <div className="max-w-7xl w-full mx-auto px-4 md:px-6 pt-6">
-        <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-2 flex flex-wrap gap-1">
+      <nav role="navigation" aria-label="Tabs principales" className="max-w-7xl w-full mx-auto px-4 md:px-6 pt-6">
+        <div role="tablist" aria-label="Secciones de la app" className="bg-slate-900/95 border border-slate-800 rounded-2xl p-2 flex flex-wrap gap-1">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setStep(t.id)}
+              role="tab"
+              aria-selected={step === t.id}
               className={cn(
                 'flex-1 min-w-[120px] py-2.5 px-3 rounded-xl font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-2',
                 step === t.id
                   ? 'bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800',
               )}
             >
               <i className={`fa-solid ${t.icon}`} aria-hidden />
@@ -126,10 +206,10 @@ export function App() {
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* MAIN */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 gap-6">
+      <main id="main-content" role="main" className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 gap-6 pb-20 md:pb-6">
         {step === 'brief' && <BriefWizard />}
         {step === 'storyboard' && <KeyframeStoryboard briefReady={!!brief} />}
         {step === 'export' && <ExportCenter />}
@@ -138,9 +218,10 @@ export function App() {
       <PromptApprovalGate />
       <SplitViewHost />
       <ToastContainer />
+      <BottomNav />
 
-      <footer className="border-t border-slate-800 px-4 md:px-6 py-4 text-center text-[11px] text-slate-500">
-        <span>Bridge Creative Engine · S1 Foundation · Standalone · Gemini-only · {new Date().getFullYear()}</span>
+      <footer role="contentinfo" className="border-t border-slate-800 px-4 md:px-6 py-4 text-center text-[11px] text-slate-500">
+        <span>Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · {new Date().getFullYear()}</span>
       </footer>
     </div>
   );

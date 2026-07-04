@@ -199,17 +199,20 @@ export function BriefWizard() {
             3 pasos · ~5 min. Tu información se guarda localmente.
           </p>
         </div>
-        <ol className="flex items-center gap-2">
+        <ol className="flex items-center gap-2" role="tablist" aria-label="Pasos del wizard">
           {STEPS.map((s) => (
             <li
               key={s.id}
+              role="tab"
+              aria-selected={step === s.id}
+              aria-current={step === s.id ? 'step' : undefined}
               className={cn(
                 'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border',
                 step === s.id
                   ? 'bg-sky-500/10 border-sky-500/40 text-sky-300'
                   : step > s.id
                   ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-500',
+                  : 'bg-slate-950 border-slate-800 text-slate-300',
               )}
             >
               <i className={`fa-solid ${s.icon}`} aria-hidden />
@@ -220,22 +223,28 @@ export function BriefWizard() {
       </header>
 
       {step === 0 && (
-        <StepBusiness
-          business={draft.business}
-          onChange={setBusiness}
-        />
+        <div data-tour="brief-step-business">
+          <StepBusiness
+            business={draft.business}
+            onChange={setBusiness}
+          />
+        </div>
       )}
       {step === 1 && (
-        <StepServices
-          services={draft.services}
-          onAdd={addService}
-          onUpdate={updateService}
-          onRemove={removeService}
-          onUpdateStage={updateStage}
-        />
+        <div data-tour="brief-step-services">
+          <StepServices
+            services={draft.services}
+            onAdd={addService}
+            onUpdate={updateService}
+            onRemove={removeService}
+            onUpdateStage={updateStage}
+          />
+        </div>
       )}
       {step === 2 && (
-        <StepVision vision={draft.vision} onChange={setVision} />
+        <div data-tour="brief-step-vision">
+          <StepVision vision={draft.vision} onChange={setVision} />
+        </div>
       )}
 
       <footer className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">

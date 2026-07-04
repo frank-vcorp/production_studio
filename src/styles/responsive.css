@@ -1,0 +1,70 @@
+/**
+ * Responsive CSS — breakpoints mobile/tablet/desktop.
+ * Spec: SPEC-S5-WIZARD-A11Y §Tarea 5.4.
+ *
+ * Las clases usan Tailwind utilities directamente; este archivo aporta
+ * sólo reglas globales que Tailwind no cubre (focus visible, scroll lock).
+ * ID: IMPL-20260704-05.
+ */
+
+@layer utilities {
+  /* Focus visible global — accesible para teclado */
+  *:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* Quitar outline cuando se hace focus con mouse (click) */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* Mobile: <640px */
+@media (max-width: 639px) {
+  .main-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .left-panel,
+  .right-panel {
+    width: 100%;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .tablet-up {
+    display: none !important;
+  }
+}
+
+/* Tablet: 640-1023px */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .main-layout {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 1rem;
+  }
+  .mobile-only {
+    display: none !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Desktop: >=1024px */
+@media (min-width: 1024px) {
+  .main-layout {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 1.5rem;
+  }
+  .mobile-only {
+    display: none !important;
+  }
+  .tablet-only {
+    display: none !important;
+  }
+}

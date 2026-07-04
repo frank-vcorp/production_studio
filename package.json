@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
     "worker:dev": "cd worker && wrangler dev --port 8787",
     "worker:deploy": "cd worker && wrangler deploy",
     "worker:typecheck": "tsc --noEmit -p worker/tsconfig.json",
@@ -22,6 +23,7 @@
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",
+    "driver.js": "^1.6.0",
     "idb": "^8.0.0",
     "immer": "^10.1.1",
     "jszip": "^3.10.1",
@@ -32,8 +34,10 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.10.0",
     "@ffmpeg/core": "^0.12.6",
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.1",
     "@types/node": "^22.5.0",

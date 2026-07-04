@@ -25,7 +25,7 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 | **S2** | `IMPL-20260703-02` | `[✓] Completado` | Lote 6 clips background + cost estimator + survive refresh | 4-5h |
 | **S3** | `IMPL-20260703-03` | `[✓] Completado` | Pack RRSS 4 ratios (9:16, 1:1, 4:5, 16:9) + safe zones | 4-5h |
 | **S4** | `IMPL-20260703-04` | `[~] En Progreso` | Edición granular inline + Prompt Gate v2 + smart concat | 4-5h |
-| **S5** | `IMPL-20260703-05` | `[~] En Progreso` | Wizard guiado + templates sector + A11y AA + responsive | 4-5h |
+| **S5** | `IMPL-20260703-05` | `[✓] Completado` | Wizard guiado + templates sector + A11y AA + responsive | 4-5h |
 | **S6** | `IMPL-20260703-06` | `[ ] Planificado` | Tests 80% + CI/CD + Docs completas + analytics opt-in | 3-4h |
 
 ---
@@ -180,15 +180,17 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 | Checkpoint | Sprint | Fecha | Commit | Notas |
 |------------|--------|-------|--------|-------|
 | `CHK_2026-07-03_S1.md` | S1 ✅ | 2026-07-03 | `b14b251` | 17/17 tareas, 4 logs verde, 20/20 tests |
-| `CHK_2026-07-03_S2.md` | S2 ✅ | 2026-07-03 | `87baf60` | 6/6 tareas, 4 logs verde, 54/54 tests, build exit 0 |
-| `CHK_2026-07-03_S3.md` | S3 ✅ | 2026-07-03 | — | 9/9 tareas, 4 logs verde, 89/89 tests, H1+O1+O2 cerrados |
+| `CHK_2026-07-03_S2.md` | S2 ✅ | 2026-07-03 | `87baf60` | 6/6 tareas, 4 logs verde, 54/54 tests |
+| `CHK_2026-07-03_S3.md` | S3 ✅ | 2026-07-03 | `c64e6a9` | 9/9 tareas, 4 logs verde, 89/89 tests |
+| `CHK_2026-07-04_S4.md` | S4 ✅ | 2026-07-04 | `5731c1e` | 7/7 tareas, 149/149 tests, H1+H2 fixes |
+| `CHK_2026-07-04_S5.md` | S5 ✅ | 2026-07-04 | — | 6/6 tareas, 181/181 tests, 7/7 E2E a11y 0 violations |
 
 ---
 
 ## 📌 PRÓXIMA ACCIÓN
 
-**Sprint Actual:** S5 — Wizard Guiado + Templates + Accesibilidad  
-**Próxima Tarea:** 5.1 — LandingPage + Guided Tour (Driver.js)  
-**Responsable:** SOFIA (SPEC-S5-WIZARD-A11Y.md)  
-**Handoff:** `context/interconsultas/S5-handoff.md`  
-**Sprint Previo Cerrado:** S4 → commit `5731c1e` (149 tests, GEMINI 🟢, H1+H2 fixes cerrados)
+**Sprint Actual:** S6 — Tests + CI/CD + Docs + Observabilidad (sprint final)  
+**Próxima Tarea:** 6.1 — GitHub Actions workflow + Storybook catalog + tests E2E  
+**Responsable:** SOFIA (SPEC-S6-TESTS-CICD por crear)  
+**Handoff:** Pendiente  
+**Sprint Previo Cerrado:** S5 → `context/checkpoints/CHK_2026-07-04_S5.md` (audit GEMINI pendiente)

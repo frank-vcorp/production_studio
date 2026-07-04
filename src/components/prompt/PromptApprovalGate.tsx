@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/common/Button';
 import { useProjectStore } from '@/stores/projectStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useModalKeyboardShortcuts } from '@/hooks/useModalKeyboardShortcuts';
 import {
   buildKeyframeTransitionPrompt,
 } from '@/services/promptBuilder';
@@ -42,6 +44,14 @@ export function PromptApprovalGate() {
   const [draft, setDraft] = useState(initialPrompt);
   const [showDiff, setShowDiff] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(open, containerRef);
+  // H1 S5 GEMINI audit: Centralizar Esc handler en hook compartido
+  useModalKeyboardShortcuts({
+    enabled: open,
+    onClose: () => closePromptGate(),
+  });
 
   useEffect(() => {
     setDraft(initialPrompt);
@@ -75,10 +85,16 @@ export function PromptApprovalGate() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="w-full max-w-5xl max-h-[92vh] bg-slate-900 border border-sky-500/30 rounded-2xl neon-border flex flex-col overflow-hidden">
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prompt-gate-title"
+        className="w-full max-w-5xl max-h-[92vh] bg-slate-900 border border-sky-500/30 rounded-2xl neon-border flex flex-col overflow-hidden"
+      >
         <header className="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-800">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 id="prompt-gate-title" className="text-lg font-bold text-white flex items-center gap-2">
               <i className="fa-solid fa-shield-halved text-sky-400" /> Prompt Approval Gate
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">

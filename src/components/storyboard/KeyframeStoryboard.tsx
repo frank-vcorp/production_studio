@@ -4,6 +4,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import { useUIStore } from '@/stores/uiStore';
 import { Button } from '@/components/common/Button';
 import { analyzeImageForVeo } from '@/services/gemini/imageAnalysis';
+import { ariaLabelForKeyframe } from '@/utils/a11y';
 import type { Keyframe, KeyframeRole, KeyframeStatus } from '@/types/keyframe';
 import { STORYBOARD_SLOTS } from '@/types/keyframe';
 
@@ -104,6 +105,17 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
 
   return (
     <article
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabelForKeyframe(kf, role)}
+      data-testid={`keyframe-slot-${role}`}
+      onKeyDown={(e) => {
+        // Permite Enter/Space para abrir el file picker (mismo handler que el botón subir)
+        if ((e.key === 'Enter' || e.key === ' ') && !kf?.blob) {
+          e.preventDefault();
+          onUpload();
+        }
+      }}
       className={cn(
         'bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 transition-all',
         status === 'approved' && 'border-emerald-500/40',

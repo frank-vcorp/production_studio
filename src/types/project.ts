@@ -191,6 +191,10 @@ export interface UIState {
   exportCenterOpen: boolean;
   /** S4 — id de la transición cuyo SplitViewEditor está abierto (null si ninguno). */
   splitViewTransitionId: string | null;
+  /** S5 — tour guiado visto al menos una vez (persiste en localStorage). */
+  hasSeenTour: boolean;
+  /** S5 — flag para lanzar el tour cuando monte el wizard tras LandingPage. */
+  showTourOnNextRender: boolean;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   dismissToast: (id: string) => void;
   setStep: (step: UIState['currentStep']) => void;
@@ -199,4 +203,14 @@ export interface UIState {
   closeExportCenter: () => void;
   openSplitView: (transitionId: string) => void;
   closeSplitView: () => void;
+  /** S5 — marca el tour como visto (persiste). */
+  markTourSeen: () => void;
+  /** S5 — limpia el flag de tour visto (para "Volver al inicio"). */
+  resetTour: () => void;
+  /** S5 — activa el flag de tour en próximo render. */
+  setShowTourOnNextRender: (v: boolean) => void;
+  /** S5 — consume (lee + limpia) el flag de tour en próximo render. */
+  consumeShowTour: () => boolean;
+  /** S5 — limpia estado UI efímero (toasts, modals, tabs). NO toca hasSeenTour. */
+  resetAll: () => void;
 }

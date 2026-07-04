@@ -50,12 +50,23 @@ export function JobsPanel({ onJumpToExport }: Props) {
         <h3 className="text-lg font-bold flex items-center gap-2 text-white">
           <i className="fa-solid fa-list-check text-sky-400" /> Lote en Progreso
         </h3>
-        <span className="text-xs font-mono bg-slate-800 text-slate-200 px-2 py-1 rounded">
+        <span
+          className="text-xs font-mono bg-slate-800 text-slate-200 px-2 py-1 rounded"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {stats.completed}/{stats.total} Completados
         </span>
       </header>
 
-      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+      <div
+        className="h-2 bg-slate-800 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={Math.round(progressPct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Progreso del lote: ${Math.round(progressPct)}%`}
+      >
         <div
           className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-500"
           style={{ width: `${progressPct}%` }}
