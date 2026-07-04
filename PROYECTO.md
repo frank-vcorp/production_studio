@@ -24,7 +24,7 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 | **S1** | `IMPL-20260703-01` | `[✓] Completado` | Brief → 4 fotos → 1 clip Veo → master.mp4 descargable | 4-5h |
 | **S2** | `IMPL-20260703-02` | `[✓] Completado` | Lote 6 clips background + cost estimator + survive refresh | 4-5h |
 | **S3** | `IMPL-20260703-03` | `[✓] Completado` | Pack RRSS 4 ratios (9:16, 1:1, 4:5, 16:9) + safe zones | 4-5h |
-| **S4** | `IMPL-20260703-04` | `[ ] Planificado` | Edición granular inline + Prompt Gate v2 + smart concat | 4-5h |
+| **S4** | `IMPL-20260703-04` | `[~] En Progreso` | Edición granular inline + Prompt Gate v2 + smart concat | 4-5h |
 | **S5** | `IMPL-20260703-05` | `[ ] Planificado` | Wizard guiado + templates sector + A11y AA + responsive | 4-5h |
 | **S6** | `IMPL-20260703-06` | `[ ] Planificado` | Tests 80% + CI/CD + Docs completas + analytics opt-in | 3-4h |
 
@@ -188,7 +188,7 @@ Sistema **standalone, client-side only** para generar videos publicitarios 10-30
 ## 📌 PRÓXIMA ACCIÓN
 
 **Sprint Actual:** S4 — Edición Granular Inline + Prompt Gate v2  
-**Próxima Tarea:** 4.1 — SplitViewEditor con redimensionable panels  
-**Responsable:** SOFIA (SPEC-S4-GRANULAR-EDIT por crear)  
-**Handoff:** Pendiente  
-**Sprint Previo Cerrado:** S3 → `context/checkpoints/CHK_2026-07-03_S3.md` (audit GEMINI pendiente)
+**Próxima Tarea:** 4.1 — SplitViewEditor con redimensionable panels + drag divider  
+**Responsable:** SOFIA (SPEC-S4-GRANULAR-EDIT.md)  
+**Handoff:** `context/interconsultas/S4-handoff.md`  
+**Sprint Previo Cerrado:** S3 → `context/checkpoints/CHK_2026-07-03_S3.md` (commit `c64e6a9`, audit 🟢)
