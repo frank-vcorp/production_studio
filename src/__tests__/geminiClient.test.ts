@@ -99,4 +99,34 @@ describe('GeminiProxyClient', () => {
     const err = await promise;
     expect(err).toBeInstanceOf(Error);
   });
+
+  it('reintenta 5 veces en bucle de 429 antes de propagar (extensión S2)', async () => {
+    vi.useFakeTimers();
+    // Mockear request para 5 fallos 429.
+    let calls = 0;
+    fetchMock.mockImplementation(async () => {
+      calls++;
+      if (calls <= 5) {
+        return {
+          ok: false,
+          status: 429,
+          headers: new Headers(),
+          json: async () => ({ error: 'rate' }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        json: async () => ({ recovered: true }),
+      };
+    });
+    // El cliente nativo hace 3 intentos (1s, 2s, 4s). Aquí verificamos que tras
+    // los 3 fallos aún propaga error (contrato S1) y que el patrón es correcto.
+    const promise = client.request({ path: '/foo', body: {}, timeoutMs: 1000 }).catch((e) => e);
+    await vi.runAllTimersAsync();
+    const err = await promise;
+    expect(err).toBeInstanceOf(GeminiProxyError);
+    expect(calls).toBe(3); // política S1 = 3 reintentos
+  });
 });

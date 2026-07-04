@@ -1,12 +1,13 @@
 /**
- * video — Veo 3.1 I2V generation + polling.
- * Spec: SPEC-S1-FOUNDATION §1.13 + ARCH-20260703-04 §5 Paso 5.
+ * video — Veo 3.1 I2V generation + polling + retry robusto.
+ * Spec: SPEC-S1-FOUNDATION §1.13 + ARCH-20260703-04 §5 Paso 5 + SPEC-S2-ROBUSTNESS §Tarea 2.3.
  */
 
 import { geminiClient, GeminiProxyError } from './client';
 import type { KeyframeTransition } from '@/types/transition';
 import type { Keyframe } from '@/types/keyframe';
 import type { VideoOperation } from '@/types/gemini';
+import type { VeoError, VeoErrorCode } from '@/types/jobs';
 
 interface GenerateOpts {
   transition: KeyframeTransition;
@@ -109,3 +110,108 @@ export async function generateTransition(opts: GenerateOpts): Promise<{ blob: Bl
 /** Stub de polling expuesto para tests (evita fetch real) */
 export const __pollIntervalMs = POLL_INTERVAL_MS;
 export const __pollTimeoutMs = POLL_TIMEOUT_MS;
+
+// ────────────────────────────────────────────────────────────────────────
+// S2 — Retry robusto + error classification
+// ────────────────────────────────────────────────────────────────────────
+
+/** Backoff exponencial: 5 intentos (1s, 2s, 4s, 8s, 16s). */
+export const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000] as const;
+
+/** Mapea un error crudo a un VeoError tipado. */
+export function classifyVeoError(err: unknown): VeoError {
+  const e = err as { status?: number; message?: string; code?: string; details?: unknown };
+  const status = typeof e?.status === 'number' ? e.status : 0;
+  const message = String(e?.message ?? err ?? 'Unknown error');
+  const lower = message.toLowerCase();
+
+  let code: VeoErrorCode = 'unknown';
+  let retryable = false;
+
+  if (status === 429 || lower.includes('quota') || lower.includes('rate')) {
+    code = 'quota';
+    retryable = true;
+  } else if (status === 408 || lower.includes('timeout')) {
+    code = 'timeout';
+    retryable = true;
+  } else if (status >= 500 || lower.includes('network') || lower.includes('upstream')) {
+    code = 'network';
+    retryable = true;
+  } else if (status === 400 && (lower.includes('safety') || lower.includes('blocked') || lower.includes('policy'))) {
+    code = 'safety';
+    retryable = false;
+  } else {
+    code = 'unknown';
+    retryable = false;
+  }
+
+  const veoErr: VeoError = Object.assign(new Error(message), {
+    code,
+    retryable,
+    details: e?.details,
+  });
+  return veoErr;
+}
+
+export interface RetryResult {
+  blob: Blob;
+  url: string;
+  operationId: string;
+  attempts: number;
+  totalLatencyMs: number;
+}
+
+/**
+ * Versión con retry: 5 intentos con backoff exponencial.
+ * - Verifica approval gate (ADR-04) en CADA intento.
+ * - Falla rápido (throw) si el error es no-retryable (ej. safety).
+ */
+export async function generateTransitionWithRetry(
+  transition: KeyframeTransition,
+  keyframeFrom: Keyframe,
+  keyframeTo: Keyframe,
+  onAttempt?: (attempt: number, totalLatencyMs: number) => void,
+): Promise<RetryResult> {
+  const start = performance.now();
+  let lastError: VeoError | null = null;
+
+  for (let attempt = 1; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      // Invariante ADR-04: nunca bypass del approval gate.
+      if (transition.status !== 'approved') {
+        throw new GeminiProxyError(
+          412,
+          `Transition not approved (status: ${transition.status})`,
+          { status: transition.status },
+        );
+      }
+      onAttempt?.(attempt, performance.now() - start);
+
+      const result = await generateTransition({ transition, fromKeyframe: keyframeFrom, toKeyframe: keyframeTo });
+      return {
+        blob: result.blob,
+        url: result.url,
+        operationId: result.operationId,
+        attempts: attempt,
+        totalLatencyMs: performance.now() - start,
+      };
+    } catch (err) {
+      const veoErr = err instanceof GeminiProxyError ? classifyVeoError(err) : classifyVeoError(err);
+      veoErr.attemptNumber = attempt;
+      lastError = veoErr;
+      console.warn(`[VeoClient] Attempt ${attempt} failed:`, veoErr.code, veoErr.message);
+
+      if (!veoErr.retryable) {
+        // Safety u otro no-retryable → throw inmediato (no intentemos de nuevo).
+        throw veoErr;
+      }
+      if (attempt < RETRY_DELAYS_MS.length) {
+        const delay = RETRY_DELAYS_MS[attempt - 1];
+        console.log(`[VeoClient] Retrying in ${delay}ms...`);
+        await new Promise<void>((r) => setTimeout(r, delay));
+      }
+    }
+  }
+
+  throw lastError ?? new Error('Max retries exceeded');
+}

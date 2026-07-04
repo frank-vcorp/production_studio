@@ -1,11 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useProjectStore } from '@/stores/projectStore';
 import { useUIStore } from '@/stores/uiStore';
 import { ffmpegService } from '@/services/ffmpeg';
 import { generateTransition } from '@/services/gemini/video';
+import { jobQueue } from '@/services/jobQueue';
+import { useJobs } from '@/hooks/useJobs';
+import { showVideoReadyNotification, requestNotificationPermission } from '@/services/notification';
 import { Button } from '@/components/common/Button';
 import { downloadBlob, downloadJSON } from '@/utils/download';
 import { formatBytes } from '@/utils/format';
+import { CostEstimatorModal } from '@/components/generation/CostEstimatorModal';
+import { JobsPanel } from '@/components/generation/JobsPanel';
+import type { CostEstimatorInput } from '@/services/costEstimator';
+import type { JobSpec } from '@/types/jobs';
 import type { KeyframeTransition } from '@/types/transition';
 import type { ProjectState } from '@/types/project';
 import type { TransitionStatus } from '@/types/transition';
@@ -49,6 +56,31 @@ function markTransitionFailed(id: string, message: string): void {
   });
 }
 
+/** Hook que envuelve useJobs para detectar "todos completados" + emite notificación. */
+function useJobProgress(): { allJobsCompleted: boolean; hasPending: boolean } {
+  const state = useJobs();
+  const lastBatchIdRef = useRef<string | null>(null);
+
+  const completed = state.completedJobs + state.failedJobs;
+  const allDone = state.jobs.length > 0 && completed === state.jobs.length;
+  const pending = state.jobs.some(
+    (j) => j.status === 'queued' || j.status === 'active' || j.status === 'paused',
+  );
+
+  useEffect(() => {
+    // Identifica el batch por el primer job (todos comparten createdAt próximo).
+    const batchId = state.jobs[0]?.id ?? null;
+    if (allDone && batchId && lastBatchIdRef.current !== batchId) {
+      lastBatchIdRef.current = batchId;
+      showVideoReadyNotification();
+    } else if (!allDone && batchId === null) {
+      lastBatchIdRef.current = null;
+    }
+  }, [allDone, state.jobs]);
+
+  return { allJobsCompleted: allDone, hasPending: pending };
+}
+
 const NODE_ORDER: Array<{ node: 'bumper' | 'atencion' | 'interes' | 'deseo' | 'accion' | 'cta'; label: string; duration: number; kf: 'bumper_start' | 'atencion_in' | 'interes_in' | 'deseo_in' | 'accion_in' | 'cta_final' }> = [
   { node: 'bumper',   label: 'Cortinilla (Bumper)', duration: 3, kf: 'bumper_start' },
   { node: 'atencion', label: 'Atención',            duration: 4, kf: 'atencion_in' },
@@ -70,6 +102,69 @@ export function ExportCenter() {
   const addToast = useUIStore((s) => s.addToast);
   const [progress, setProgress] = useState<{ stage: string; pct: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [costModalOpen, setCostModalOpen] = useState(false);
+
+  // JobQueue suscripción para detectar "todos completados" + JobsPanel embebido.
+  useJobProgress();
+
+  const costInput = useMemo<CostEstimatorInput>(() => {
+    const approved = Array.from(transitions.values()).filter((t) => t.status === 'approved');
+    const kfNeedGen = Array.from(keyframes.values()).filter(
+      (k) => k.source === 'generated_imagen3' && (k.status === 'empty' || k.status === 'uploaded'),
+    );
+    return {
+      transitions: approved,
+      keyframesNeedGeneration: kfNeedGen,
+      voiceoverText: '',
+      voiceoverDurationSec: 30,
+      brief: brief ?? null,
+    };
+  }, [transitions, keyframes, brief]);
+
+  const approvedCount = useMemo(
+    () => Array.from(transitions.values()).filter((t) => t.status === 'approved').length,
+    [transitions],
+  );
+
+  const handleGenerateBatch = useCallback(async (): Promise<void> => {
+    if (approvedCount === 0) {
+      addToast({ kind: 'warning', message: 'Aprueba al menos un prompt antes de generar el lote.' });
+      return;
+    }
+    setCostModalOpen(true);
+  }, [approvedCount, addToast]);
+
+  const handleConfirmBatch = useCallback(async (): Promise<void> => {
+    setCostModalOpen(false);
+    // Solicitar permiso de notificación silenciosamente.
+    void requestNotificationPermission();
+    // Construir JobSpec[] a partir de transiciones aprobadas.
+    const approved = Array.from(transitions.values()).filter((t) => t.status === 'approved');
+    const specs: JobSpec[] = [];
+    for (const t of approved) {
+      const kfFrom = keyframes.get(t.fromKeyframe);
+      const kfTo = keyframes.get(t.toKeyframe);
+      if (!kfFrom || !kfTo) continue;
+      specs.push({
+        kind: 'video_generation',
+        transitionId: t.id,
+        transition: t,
+        keyframeFrom: kfFrom,
+        keyframeTo: kfTo,
+        brief: brief ?? null,
+      });
+    }
+    if (specs.length === 0) {
+      addToast({ kind: 'warning', message: 'No hay transiciones con keyframes válidos.' });
+      return;
+    }
+    try {
+      await jobQueue.createBatch(specs);
+      addToast({ kind: 'info', message: `Lote creado con ${specs.length} jobs.` });
+    } catch (e) {
+      addToast({ kind: 'error', message: `No se pudo crear el lote: ${(e as Error).message}` });
+    }
+  }, [transitions, keyframes, brief, addToast]);
 
   const handleAssemble = useCallback(async () => {
     if (!brief) {
@@ -192,14 +287,32 @@ export function ExportCenter() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Button variant="success" size="lg" icon="fa-bolt" onClick={handleAssemble} loading={busy}>
           Ensamblar Master (FFmpeg)
         </Button>
         <Button variant="primary" size="lg" icon="fa-wand-magic-sparkles" onClick={handleGenerateVeo}>
           Generar clips aprobados con Veo
         </Button>
+        <Button
+          variant="primary"
+          size="lg"
+          icon="fa-film"
+          onClick={handleGenerateBatch}
+          disabled={approvedCount === 0}
+        >
+          Generar Lote Completo ({approvedCount} clips)
+        </Button>
       </div>
+
+      <JobsPanel />
+
+      <CostEstimatorModal
+        open={costModalOpen}
+        onClose={() => setCostModalOpen(false)}
+        onConfirm={handleConfirmBatch}
+        input={costInput}
+      />
 
       {progress && (
         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300">

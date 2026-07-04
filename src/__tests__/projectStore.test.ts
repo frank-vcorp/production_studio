@@ -79,4 +79,24 @@ describe('projectStore', () => {
     expect(useProjectStore.getState().brief).toBeNull();
     expect(useProjectStore.getState().brandKit).toBeNull();
   });
+
+  it('accepts BackgroundJob-like payload via setState (jobQueue integration smoke)', async () => {
+    const { useProjectStore } = await import('@/stores/projectStore');
+    // Simular que jobQueue marca una transición como done con un clip Blob.
+    const blob = new Blob(['clip-mock'], { type: 'video/mp4' });
+    const { approveTransitionPrompt } = useProjectStore.getState();
+    approveTransitionPrompt('trans_atencion', 'p');
+    useProjectStore.setState((s) => {
+      const cur = s.transitions.get('trans_atencion');
+      if (!cur) return s;
+      const nextTrans = new Map(s.transitions);
+      const nextClips = new Map(s.clips);
+      nextClips.set('trans_atencion', blob);
+      nextTrans.set('trans_atencion', { ...cur, videoBlob: blob, status: 'done' });
+      return { clips: nextClips, transitions: nextTrans };
+    });
+    const after = useProjectStore.getState();
+    expect(after.clips.get('trans_atencion')?.size).toBeGreaterThan(0);
+    expect(after.transitions.get('trans_atencion')?.status).toBe('done');
+  });
 });
