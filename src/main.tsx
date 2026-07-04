@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './styles/globals.css';
 
+// Build marker: v1.0.0-worker-connected-2026-07-04
+// Si ves este comentario en producción, el build es el correcto con Worker URL embebido.
+
 const rootEl = document.getElementById('root');
 if (!rootEl) {
   throw new Error('Root element #root not found in DOM');
