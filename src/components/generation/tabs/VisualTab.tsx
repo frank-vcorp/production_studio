@@ -42,14 +42,17 @@ export function VisualTab({
       </div>
 
       <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-        Intención humana (qué quieres ver al final)
+        ¿Qué quieres que se vea al final?
       </label>
+      <p className="text-[10px] text-slate-500 italic -mt-1">
+        Describe en lenguaje natural qué quieres comunicar visualmente. La IA generará un prompt cinematográfico.
+      </p>
       <textarea
         value={intent}
         onChange={(e) => setIntent(e.target.value)}
         rows={3}
         className="input text-xs resize-y"
-        placeholder="Ej: abrir a motor sucio desenfocado"
+        placeholder="Ej: que se vea un filtro de aceite con grasa en primer plano, desenfocado al fondo"
         data-testid="visual-intent"
       />
 

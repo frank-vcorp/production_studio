@@ -1,0 +1,5 @@
+[    3101ms] [INFO] [Bridge] v1.0.0-worker-ok @ https://production-studio-gamma.vercel.app/assets/index-Cg2stppY.js:113
+[    3192ms] [INFO] [Bridge] v1.0.0-worker-ok @ https://production-studio-gamma.vercel.app/assets/index-Cg2stppY.js:113
+[    3345ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://production-studio-gamma.vercel.app/favicon.svg:0
+[    3457ms] [INFO] [Bridge] v1.0.0-worker-ok @ https://production-studio-gamma.vercel.app/assets/index-Cg2stppY.js:113
+[    3481ms] [INFO] [Bridge] v1.0.0-worker-ok @ https://production-studio-gamma.vercel.app/assets/index-Cg2stppY.js:113

@@ -5,6 +5,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { Button } from '@/components/common/Button';
 import { analyzeImageForVeo } from '@/services/gemini/imageAnalysis';
 import { ariaLabelForKeyframe } from '@/utils/a11y';
+import { IntentTextarea } from './IntentTextarea';
 import type { Keyframe, KeyframeRole, KeyframeStatus } from '@/types/keyframe';
 import { STORYBOARD_SLOTS } from '@/types/keyframe';
 
@@ -41,7 +42,6 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
   const openPromptGate = useProjectStore((s) => s.openPromptGate);
   const analyzeKeyframe = useProjectStore((s) => s.analyzeKeyframe);
   const approveKeyframe = useProjectStore((s) => s.approveKeyframe);
-  const setKeyframeIntent = useProjectStore((s) => s.setKeyframeIntent);
   const transitions = useProjectStore((s) => s.transitions);
   const openSplitView = useUIStore((s) => s.openSplitView);
   const addToast = useUIStore((s) => s.addToast);
@@ -199,17 +199,13 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
         )}
       </div>
 
-      {/* Intent (in-camera hint) */}
-      {showIntent && (
-        <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-800">
-          <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-            Intención humana (qué quieres ver al final)
-          </label>
-          <textarea
-            value={kf?.humanIntent ?? ''}
-            onChange={(e) => kf && setKeyframeIntent(kf.id, e.target.value)}
+      {/* Intent (in-camera hint) — S5 §Tarea 5.1 fix: componente con debounce */}
+      {showIntent && kf && (
+        <div className="pt-2 border-t border-slate-800">
+          <IntentTextarea
+            keyframeId={kf.id}
+            initialValue={kf.humanIntent ?? ''}
             rows={2}
-            className="input text-xs resize-y"
             placeholder="Ej: abrir a motor sucio desenfocado"
           />
         </div>
