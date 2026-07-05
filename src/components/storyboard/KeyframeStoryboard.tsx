@@ -7,7 +7,7 @@ import { analyzeImageForVeo } from '@/services/gemini/imageAnalysis';
 import { ariaLabelForKeyframe } from '@/utils/a11y';
 import { IntentTextarea } from './IntentTextarea';
 import type { Keyframe, KeyframeRole, KeyframeStatus } from '@/types/keyframe';
-import { STORYBOARD_SLOTS } from '@/types/keyframe';
+import { STORYBOARD_SLOTS, STORYBOARD_STRUCTURE } from '@/types/keyframe';
 
 const STATUS_LABEL: Record<KeyframeStatus, string> = {
   empty: 'Vacío',
@@ -276,13 +276,6 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
     [uploadKeyframeImage, addToast],
   );
 
-  const allSlots = [
-    ...STORYBOARD_SLOTS.map((s) => s.role),
-    'atencion_out' as const,
-    'interes_out' as const,
-    'deseo_out' as const,
-  ];
-
   if (!briefReady) {
     return (
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 text-slate-400 text-sm">
@@ -300,36 +293,99 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
               <i className="fa-solid fa-film text-fuchsia-400" /> Keyframe Storyboard
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              6 slots base + 3 keyframes <span className="text-fuchsia-300">Auto (Imagen 3)</span> generadas.
+              5 categorías AIDA · Sube fotos reales o genera OUTs automáticos con <span className="text-fuchsia-300">Imagen 3</span>.
             </p>
           </div>
           <div className="text-[11px] text-slate-500 flex items-center gap-2">
             <i className="fa-solid fa-circle-info" />
-            Photos reales en slots, Imagen 3 para los OUT.
+            📁 Generales = fotos del negocio · 🎬 AIDA = IN real + OUT auto
           </div>
         </header>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allSlots.map((role) => {
-          const meta = STORYBOARD_SLOTS.find((s) => s.role === role);
-          const kf = keyframes.get(`kf_${role}`);
+      <div className="flex flex-col gap-6">
+        {STORYBOARD_STRUCTURE.map((category) => {
+          const categoryKeyframes = category.slots
+            .map((slot) => {
+              const kf = keyframes.get(`kf_${slot.role}`);
+              const meta = STORYBOARD_SLOTS.find((s) => s.role === slot.role);
+              return {
+                role: slot.role,
+                kf,
+                label: slot.label,
+                description: slot.hint,
+                metaHint: meta?.description,
+                autoGenerate: slot.autoGenerate ?? false,
+              };
+            })
+            .filter((item) => !item.autoGenerate || true); // incluye todos, auto-generados también
+
           return (
-            <KeyframeSlotView
-              key={role}
-              role={role}
-              label={meta?.label ?? capitalize(role)}
-              description={meta?.description ?? 'Generada automáticamente por Imagen 3'}
-              kf={kf}
-              onUpload={() => onPickFile(role)}
-            />
+            <section
+              key={category.id}
+              data-testid={`category-${category.id}`}
+              className="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col gap-3"
+              aria-labelledby={`category-${category.id}-heading`}
+            >
+              {/* Header de categoría */}
+              <header className="flex items-start justify-between gap-3 pb-2 border-b border-slate-800">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={cn(
+                      'h-10 w-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0',
+                      category.accent === 'sky' && 'bg-sky-500/15 text-sky-300',
+                      category.accent === 'emerald' && 'bg-emerald-500/15 text-emerald-300',
+                      category.accent === 'indigo' && 'bg-indigo-500/15 text-indigo-300',
+                      category.accent === 'fuchsia' && 'bg-fuchsia-500/15 text-fuchsia-300',
+                      category.accent === 'rose' && 'bg-rose-500/15 text-rose-300',
+                    )}
+                    aria-hidden="true"
+                  >
+                    {category.emoji}
+                  </div>
+                  <div>
+                    <h3
+                      id={`category-${category.id}-heading`}
+                      className="text-base font-bold text-white"
+                    >
+                      {category.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
+                      {category.description}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    'text-[10px] uppercase tracking-wider px-2 py-1 rounded border flex-shrink-0',
+                    category.accent === 'sky' && 'bg-sky-500/10 border-sky-500/30 text-sky-300',
+                    category.accent === 'emerald' && 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
+                    category.accent === 'indigo' && 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300',
+                    category.accent === 'fuchsia' && 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-300',
+                    category.accent === 'rose' && 'bg-rose-500/10 border-rose-500/30 text-rose-300',
+                  )}
+                >
+                  {category.slots.length} slots
+                </span>
+              </header>
+
+              {/* Grid de slots de esta categoría */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {categoryKeyframes.map((item) => (
+                  <KeyframeSlotView
+                    key={item.role}
+                    role={item.role}
+                    label={item.label}
+                    description={item.description}
+                    kf={item.kf}
+                    onUpload={() => onPickFile(item.role)}
+                  />
+                ))}
+              </div>
+            </section>
           );
         })}
       </div>
     </div>
   );
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
