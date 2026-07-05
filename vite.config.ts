@@ -42,11 +42,13 @@ export default defineConfig({
     format: 'es',
   },
   define: {
-    // Base del proxy Cloudflare Worker. En dev se sobreescribe via .env.local.
-    // En prod usa VITE_PROXY_BASE (env var Vercel) o fallback al Worker desplegado.
-    // NUNCA expone la Gemini API key — esta se inyecta server-side en el Worker.
+    // Base del proxy Cloudflare Worker.
+    // HARDCODED a la URL del Worker desplegado (no usa process.env para evitar
+    // que env vars de Vercel mal configuradas rompan el flujo).
+    // Si necesitas cambiar el Worker, edita aquí y haz commit.
+    // NUNCA expone la Gemini API key — esa se inyecta server-side en el Worker.
     'import.meta.env.VITE_PROXY_BASE': JSON.stringify(
-      process.env.VITE_PROXY_BASE || 'https://bridge-gemini-proxy.vectoria-pstudio.workers.dev'
+      'https://bridge-gemini-proxy.vectoria-pstudio.workers.dev'
     ),
   },
   test: {
