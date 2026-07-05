@@ -275,17 +275,56 @@ export const useProjectStore = create<ProjectState>()(
         set((s) => {
           const existing = s.keyframes.get(id);
           if (!existing) return s;
+          // ARCH-20260704-07: si el keyframe ya tenía contenido previo, resetear
+          // análisis visual, intent/description del usuario y blobs derivados.
+          // Si NO se resetea, el botón "Generar clip" desaparece porque
+          // canGenerateClip exige outgoing.status === 'pending'.
+          const isReupload = existing.status !== 'empty';
+          const resetKf: Keyframe = isReupload
+            ? {
+                ...existing,
+                blob: file,
+                base64,
+                mimeType: file.type,
+                source: 'user_upload',
+                status: 'uploaded',
+                error: undefined,
+                visualAnalysis: undefined,
+                humanIntent: '',
+                humanDescription: '',
+              }
+            : {
+                ...existing,
+                blob: file,
+                base64,
+                mimeType: file.type,
+                source: 'user_upload',
+                status: 'uploaded',
+                error: undefined,
+              };
           const next = new Map(s.keyframes);
-          next.set(id, {
-            ...existing,
-            blob: file,
-            base64,
-            mimeType: file.type,
-            source: 'user_upload',
-            status: 'uploaded',
-            error: undefined,
-          });
-          return { keyframes: next };
+          next.set(id, resetKf);
+
+          // Si es reupload, resetear TODAS las transiciones que tocan este
+          // keyframe (tanto salientes como entrantes) para que vuelvan a
+          // aparecer los botones "Generar clip" y "Aprobar prompt".
+          let nextTransitions = s.transitions;
+          if (isReupload) {
+            nextTransitions = new Map(s.transitions);
+            for (const [tId, t] of s.transitions) {
+              if (t.fromKeyframe === id || t.toKeyframe === id) {
+                nextTransitions.set(tId, {
+                  ...t,
+                  status: 'pending',
+                  prompt: '',
+                  promptFinal: undefined,
+                  errorMessage: undefined,
+                });
+              }
+            }
+          }
+
+          return { keyframes: next, transitions: nextTransitions };
         });
       },
 

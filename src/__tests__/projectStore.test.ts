@@ -99,4 +99,75 @@ describe('projectStore', () => {
     expect(after.clips.get('trans_atencion')?.size).toBeGreaterThan(0);
     expect(after.transitions.get('trans_atencion')?.status).toBe('done');
   });
+
+  // ARCH-20260704-07: al reemplazar la imagen de un keyframe ya analizado/
+  // aprobado, deben resetearse visualAnalysis, intent, description y TODAS
+  // las transiciones que apuntan al keyframe (para que vuelva a aparecer el
+  // botón "Generar clip").
+  it('uploadKeyframeImage reupload resetea keyframe analizado y transiciones', async () => {
+    const { useProjectStore } = await import('@/stores/projectStore');
+    const kfId = 'kf_atencion_in';
+
+    // 1. Sembrar keyframe como ya analizado + con visualAnalysis + intent.
+    useProjectStore.setState((s) => {
+      const cur = s.keyframes.get(kfId);
+      if (!cur) return s;
+      const next = new Map(s.keyframes);
+      next.set(kfId, {
+        ...cur,
+        status: 'analyzed',
+        visualAnalysis: {
+          subject: 'auto',
+          environment: 'taller',
+          lighting: 'natural',
+          composition: 'rule of thirds',
+          colorPalette: ['#000000'],
+          textures: ['metal'],
+          cameraPosition: 'eye level',
+          depthOfField: 'medium',
+          dominantShapes: ['rectangle'],
+          technicalNotes: 'mock',
+          analyzedAt: Date.now(),
+          model: 'gemini-2.5-pro-vision',
+          confidence: 0.9,
+        },
+        humanIntent: 'abrir a motor sucio',
+        humanDescription: 'Foto real del problema',
+      });
+      return { keyframes: next };
+    });
+
+    // 2. Marcar la transición saliente como prompt_ready con prompt.
+    const transId = 'trans_atencion';
+    useProjectStore.setState((s) => {
+      const cur = s.transitions.get(transId);
+      if (!cur) return s;
+      const next = new Map(s.transitions);
+      next.set(transId, {
+        ...cur,
+        status: 'prompt_ready',
+        prompt: 'prompt listo para revisión',
+        promptFinal: 'prompt final aprobado',
+      });
+      return { transitions: next };
+    });
+
+    // 3. Llamar uploadKeyframeImage con un nuevo File.
+    const newFile = new File(['new-image-bytes'], 'replacement.png', { type: 'image/png' });
+    await useProjectStore.getState().uploadKeyframeImage('atencion_in', newFile);
+
+    // 4. Verificar que el keyframe volvió a 'uploaded' sin derivados.
+    const afterKf = useProjectStore.getState().keyframes.get(kfId);
+    expect(afterKf?.status).toBe('uploaded');
+    expect(afterKf?.visualAnalysis).toBeUndefined();
+    expect(afterKf?.humanIntent).toBe('');
+    expect(afterKf?.humanDescription).toBe('');
+    expect(afterKf?.blob).toBe(newFile);
+
+    // 5. Verificar que la transición saliente volvió a pending y se limpió el prompt.
+    const afterTrans = useProjectStore.getState().transitions.get(transId);
+    expect(afterTrans?.status).toBe('pending');
+    expect(afterTrans?.prompt).toBe('');
+    expect(afterTrans?.promptFinal).toBeUndefined();
+  });
 });
