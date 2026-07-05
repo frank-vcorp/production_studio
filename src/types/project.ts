@@ -155,7 +155,7 @@ export interface ProjectState {
   setGlobalVision: (partial: Partial<GlobalAdVision>) => void;
 
   setKeyframe: (kf: Keyframe) => void;
-  uploadKeyframeImage: (role: KeyframeRole, file: File) => Promise<void>;
+  uploadKeyframeImage: (role: KeyframeRole, file: File, isReuploadOverride?: boolean) => Promise<void>;
   analyzeKeyframe: (keyframeId: string) => Promise<void>;
   setKeyframeIntent: (keyframeId: string, intent: string, description?: string) => void;
   approveKeyframe: (keyframeId: string) => void;

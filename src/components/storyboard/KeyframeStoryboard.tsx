@@ -265,7 +265,22 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
         const file = input.files?.[0];
         if (!file) return;
         try {
-          await uploadKeyframeImage(role, file);
+          // ARCH-20260704-08: detectar reupload ANTES de la actualización para
+          // mostrar un toast informativo y propagar el flag al store. Si el
+          // keyframe estaba en estado 'empty' es primer upload; cualquier otro
+          // estado (uploaded, analyzed, generated, approved, failed) se
+          // considera reupload y dispara el reset completo.
+          const wasReupload =
+            (useProjectStore.getState().keyframes.get(`kf_${role}`)?.status ?? 'empty') !== 'empty';
+          await uploadKeyframeImage(role, file, wasReupload);
+          if (wasReupload) {
+            // ARCH-20260704-08: notificar al usuario que el reemplazo implica
+            // reiniciar análisis y clips asociados.
+            addToast({
+              kind: 'info',
+              message: 'Imagen reemplazada. Se reiniciaron análisis y clips asociados.',
+            });
+          }
           addToast({ kind: 'success', message: `Imagen subida a ${role}.` });
           // S5 §Tarea 5.1 fix: auto-analizar después de subir para que el prompt
           // approval gate tenga el visualAnalysis disponible sin click manual.

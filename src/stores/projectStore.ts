@@ -269,17 +269,22 @@ export const useProjectStore = create<ProjectState>()(
           return { keyframes: next };
         }),
 
-      uploadKeyframeImage: async (role: KeyframeRole, file: File) => {
+      uploadKeyframeImage: async (role: KeyframeRole, file: File, isReuploadOverride?: boolean) => {
         const id = `kf_${role}`;
         const base64 = await blobToBase64(file);
         set((s) => {
           const existing = s.keyframes.get(id);
           if (!existing) return s;
-          // ARCH-20260704-07: si el keyframe ya tenía contenido previo, resetear
-          // análisis visual, intent/description del usuario y blobs derivados.
-          // Si NO se resetea, el botón "Generar clip" desaparece porque
-          // canGenerateClip exige outgoing.status === 'pending'.
-          const isReupload = existing.status !== 'empty';
+          // ARCH-20260704-07 + ARCH-20260704-08: si el keyframe ya tenía
+          // contenido previo (reupload), resetear COMPLETAMENTE el keyframe y
+          // TODAS las transiciones que apuntan a él. Si NO se resetea, el
+          // botón "Generar clip" desaparece porque canGenerateClip exige
+          // outgoing.status === 'pending'.
+          //
+          // El caller puede pasar `isReuploadOverride` para forzar el flag
+          // (útil cuando necesita calcularlo leyendo el estado ANTES de
+          // invocar upload). Si no se pasa, se autodetecta por status.
+          const isReupload = isReuploadOverride ?? existing.status !== 'empty';
           const resetKf: Keyframe = isReupload
             ? {
                 ...existing,
@@ -292,6 +297,10 @@ export const useProjectStore = create<ProjectState>()(
                 visualAnalysis: undefined,
                 humanIntent: '',
                 humanDescription: '',
+                // ARCH-20260704-08 (fix GEMINI): generationPrompt puede contener
+                // un prompt derivado del visualAnalysis viejo; al reupload debe
+                // quedar limpio para que el próximo análisis regenere desde cero.
+                generationPrompt: undefined,
               }
             : {
                 ...existing,
@@ -308,6 +317,10 @@ export const useProjectStore = create<ProjectState>()(
           // Si es reupload, resetear TODAS las transiciones que tocan este
           // keyframe (tanto salientes como entrantes) para que vuelvan a
           // aparecer los botones "Generar clip" y "Aprobar prompt".
+          // ARCH-20260704-08 (fix GEMINI): reset COMPLETO — además del prompt,
+          // se limpian los blobs/urls de video, el operation id de Veo y el
+          // historial de prompts para que no quede estado residual que
+          // contamine la siguiente generación.
           let nextTransitions = s.transitions;
           if (isReupload) {
             nextTransitions = new Map(s.transitions);
@@ -319,6 +332,11 @@ export const useProjectStore = create<ProjectState>()(
                   prompt: '',
                   promptFinal: undefined,
                   errorMessage: undefined,
+                  videoBlob: undefined,
+                  videoUrl: undefined,
+                  veoOperationId: undefined,
+                  generatedAt: undefined,
+                  promptHistory: [],
                 });
               }
             }

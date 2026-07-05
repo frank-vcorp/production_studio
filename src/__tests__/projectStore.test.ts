@@ -100,15 +100,18 @@ describe('projectStore', () => {
     expect(after.transitions.get('trans_atencion')?.status).toBe('done');
   });
 
-  // ARCH-20260704-07: al reemplazar la imagen de un keyframe ya analizado/
-  // aprobado, deben resetearse visualAnalysis, intent, description y TODAS
-  // las transiciones que apuntan al keyframe (para que vuelva a aparecer el
-  // botón "Generar clip").
+  // ARCH-20260704-07 + ARCH-20260704-08: al reemplazar la imagen de un
+  // keyframe ya analizado/aprobado, deben resetearse COMPLETAMENTE el keyframe
+  // (visualAnalysis, intent, description, generationPrompt) y TODAS las
+  // transiciones que apuntan al keyframe (prompt, videoBlob, videoUrl,
+  // veoOperationId, generatedAt, promptHistory, status → pending) para que
+  // vuelva a aparecer el botón "Generar clip" sin estado residual.
   it('uploadKeyframeImage reupload resetea keyframe analizado y transiciones', async () => {
     const { useProjectStore } = await import('@/stores/projectStore');
     const kfId = 'kf_atencion_in';
 
-    // 1. Sembrar keyframe como ya analizado + con visualAnalysis + intent.
+    // 1. Sembrar keyframe como ya analizado + con visualAnalysis + intent
+    //    + generationPrompt (campo introducido en fix ARCH-20260704-08).
     useProjectStore.setState((s) => {
       const cur = s.keyframes.get(kfId);
       if (!cur) return s;
@@ -133,11 +136,13 @@ describe('projectStore', () => {
         },
         humanIntent: 'abrir a motor sucio',
         humanDescription: 'Foto real del problema',
+        generationPrompt: 'prompt derivado del análisis viejo',
       });
       return { keyframes: next };
     });
 
-    // 2. Marcar la transición saliente como prompt_ready con prompt.
+    // 2. Marcar la transición saliente como done con video + prompt final +
+    //    operation id + historial de versiones (estado completo post-generación).
     const transId = 'trans_atencion';
     useProjectStore.setState((s) => {
       const cur = s.transitions.get(transId);
@@ -145,16 +150,28 @@ describe('projectStore', () => {
       const next = new Map(s.transitions);
       next.set(transId, {
         ...cur,
-        status: 'prompt_ready',
+        status: 'done',
         prompt: 'prompt listo para revisión',
         promptFinal: 'prompt final aprobado',
+        videoBlob: new Blob(['clip-bytes'], { type: 'video/mp4' }),
+        videoUrl: 'blob:http://localhost/clip-old',
+        veoOperationId: 'veo_op_123',
+        generatedAt: Date.now() - 1000,
+        promptHistory: [
+          {
+            version: 1,
+            prompt: 'v1 prompt',
+            approvedAt: Date.now() - 2000,
+            approvedBy: 'user',
+          },
+        ],
       });
       return { transitions: next };
     });
 
-    // 3. Llamar uploadKeyframeImage con un nuevo File.
+    // 3. Llamar uploadKeyframeImage con un nuevo File (pasando isReupload).
     const newFile = new File(['new-image-bytes'], 'replacement.png', { type: 'image/png' });
-    await useProjectStore.getState().uploadKeyframeImage('atencion_in', newFile);
+    await useProjectStore.getState().uploadKeyframeImage('atencion_in', newFile, true);
 
     // 4. Verificar que el keyframe volvió a 'uploaded' sin derivados.
     const afterKf = useProjectStore.getState().keyframes.get(kfId);
@@ -162,12 +179,21 @@ describe('projectStore', () => {
     expect(afterKf?.visualAnalysis).toBeUndefined();
     expect(afterKf?.humanIntent).toBe('');
     expect(afterKf?.humanDescription).toBe('');
+    // ARCH-20260704-08: generationPrompt debe quedar undefined tras el reset.
+    expect(afterKf?.generationPrompt).toBeUndefined();
     expect(afterKf?.blob).toBe(newFile);
 
-    // 5. Verificar que la transición saliente volvió a pending y se limpió el prompt.
+    // 5. Verificar que la transición saliente volvió a pending y se limpió
+    //    COMPLETAMENTE el estado de generación.
     const afterTrans = useProjectStore.getState().transitions.get(transId);
     expect(afterTrans?.status).toBe('pending');
     expect(afterTrans?.prompt).toBe('');
     expect(afterTrans?.promptFinal).toBeUndefined();
+    // ARCH-20260704-08: campos agregados al reset completo.
+    expect(afterTrans?.videoBlob).toBeUndefined();
+    expect(afterTrans?.videoUrl).toBeUndefined();
+    expect(afterTrans?.veoOperationId).toBeUndefined();
+    expect(afterTrans?.generatedAt).toBeUndefined();
+    expect(afterTrans?.promptHistory.length).toBe(0);
   });
 });
