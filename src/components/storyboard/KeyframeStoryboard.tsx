@@ -88,12 +88,15 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
   const canEditGranular = outgoing && (outgoing.status === 'done' || outgoing.status === 'approved' || outgoing.status === 'failed');
 
   const handleGenerateClip = useCallback(() => {
+    console.log('[DEBUG] handleGenerateClip called', { outgoing: outgoing?.id, status: outgoing?.status });
     if (!outgoing) {
       addToast({ kind: 'warning', message: 'No hay transición saliente todavía.' });
+      console.warn('[DEBUG] No outgoing transition for keyframe', kf?.id);
       return;
     }
+    console.log('[DEBUG] Opening prompt gate for transition', outgoing.id);
     openPromptGate(outgoing.id);
-  }, [outgoing, openPromptGate, addToast]);
+  }, [outgoing, openPromptGate, addToast, kf?.id]);
 
   const handleEditGranular = useCallback(() => {
     if (!outgoing) {
