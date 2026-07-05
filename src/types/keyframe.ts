@@ -120,11 +120,10 @@ export const STORYBOARD_STRUCTURE: ReadonlyArray<StoryboardCategory> = [
     id: 'generales',
     emoji: '📁',
     name: 'Generales del Negocio',
-    description: 'Logo y fotos del lugar/equipo. No se usan directamente en AIDA pero dan identidad.',
+    description: 'Logo (cortinilla inicial). Para galería múltiple de fotos del lugar, ver PENDIENTES_V1.1.',
     accent: 'sky',
     slots: [
       { role: 'bumper_start', label: 'Logo', hint: 'PNG/SVG para cortinilla inicial' },
-      { role: 'interes_in',   label: 'Tu Espacio', hint: 'Foto real: tu taller, oficina, equipo' },
     ],
   },
   {
@@ -184,10 +183,10 @@ export const STORYBOARD_SLOTS: ReadonlyArray<{
   description: string;
   allowUserUpload: boolean;
 }> = [
-  { role: 'bumper_start', label: 'Logo',                description: 'Logo PNG/SVG para cortinilla',                allowUserUpload: true },
-  { role: 'atencion_in',  label: 'Problema',            description: 'Foto real: el problema que resuelves',         allowUserUpload: true },
-  { role: 'interes_in',   label: 'Taller',              description: 'Foto real: tu espacio / equipo',              allowUserUpload: true },
-  { role: 'deseo_in',     label: 'Solución',            description: 'Foto real: el resultado final',                allowUserUpload: true },
-  { role: 'accion_in',    label: 'CTA Base',            description: 'Foto fondo tarjeta final (opcional)',          allowUserUpload: true },
-  { role: 'cta_final',    label: 'CTA Final',           description: 'Foto real: recepción / fachada',               allowUserUpload: true },
+  { role: 'bumper_start', label: 'Logo',         description: 'Logo PNG/SVG para cortinilla',         allowUserUpload: true },
+  { role: 'atencion_in',  label: 'Atención IN',  description: 'Foto real: el problema que resuelves', allowUserUpload: true },
+  { role: 'interes_in',   label: 'Interés IN',   description: 'Foto real: tu espacio / equipo',       allowUserUpload: true },
+  { role: 'deseo_in',     label: 'Deseo IN',     description: 'Foto real: el resultado final',         allowUserUpload: true },
+  { role: 'accion_in',    label: 'CTA Base',     description: 'Foto fondo tarjeta final (opcional)',   allowUserUpload: true },
+  { role: 'cta_final',    label: 'CTA Final',    description: 'Foto real: recepción / fachada',        allowUserUpload: true },
 ] as const;
