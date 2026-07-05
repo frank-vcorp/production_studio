@@ -15,7 +15,7 @@ import type {
 
 const STEPS = [
   { id: 0, label: 'Negocio', icon: 'fa-shop' },
-  { id: 1, label: 'Fotos Clave', icon: 'fa-images' },
+  { id: 1, label: 'Servicios', icon: 'fa-bullhorn' },
   { id: 2, label: 'Estilo', icon: 'fa-palette' },
 ];
 
@@ -268,6 +268,14 @@ export function BriefWizard() {
       )}
       {step === 1 && (
         <div data-tour="brief-step-services">
+          {/* S5 §Tarea 5.1 fix: explicar que las fotos van en Storyboard, no aquí */}
+          <div className="bg-sky-500/10 border border-sky-500/30 rounded-xl p-3 mb-4 flex items-start gap-2 text-xs text-sky-200">
+            <i className="fa-solid fa-circle-info text-sky-400 mt-0.5" aria-hidden="true"></i>
+            <div>
+              <strong>Aquí defines los servicios y su copy AIDA</strong> (Atención / Interés / Deseo / Acción).
+              Las <strong>fotos reales del negocio</strong> se suben en el siguiente paso: <em>Storyboard</em>.
+            </div>
+          </div>
           <StepServices
             services={draft.services}
             onAdd={addService}
