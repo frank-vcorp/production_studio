@@ -1,0 +1,44 @@
+- generic [ref=f1e2]:
+  - navigation "Accesibilidad" [ref=f1e3]:
+    - link "Saltar al contenido principal" [ref=f1e4] [cursor=pointer]:
+      - /url: "#main-content"
+  - main [ref=f1e5]:
+    - generic [ref=f1e6]:
+      - heading "Bridge Creative Engine" [level=1] [ref=f1e9]
+      - paragraph [ref=f1e10]: Genera spots AIDA en minutos para Reels, TikTok y Shorts.
+      - paragraph [ref=f1e11]: 100% local. Tus datos nunca salen de tu navegador.
+      - generic [ref=f1e12]:
+        - button "Crear mi primer spot" [ref=f1e13] [cursor=pointer]
+        - button "Iniciar tour guiado" [ref=f1e14] [cursor=pointer]
+    - region "O elige tu sector para empezar con plantillas" [ref=f1e15]:
+      - heading "O elige tu sector para empezar con plantillas" [level=2] [ref=f1e16]
+      - group "Plantillas de sector disponibles" [ref=f1e17]:
+        - button "Seleccionar plantilla de Automotriz" [ref=f1e18] [cursor=pointer]:
+          - generic [ref=f1e19]: 🚗
+          - heading "Automotriz" [level=3] [ref=f1e20]
+          - paragraph [ref=f1e21]: Taller mecánico, concesionario, refacciones
+          - paragraph [ref=f1e22]: 3 servicios pre-llenados
+        - button "Seleccionar plantilla de Estética y Belleza" [ref=f1e23] [cursor=pointer]:
+          - generic [ref=f1e24]: 💇
+          - heading "Estética y Belleza" [level=3] [ref=f1e25]
+          - paragraph [ref=f1e26]: Salón de belleza, spa, barbería
+          - paragraph [ref=f1e27]: 2 servicios pre-llenados
+        - button "Seleccionar plantilla de Comida y Restaurante" [ref=f1e28] [cursor=pointer]:
+          - generic [ref=f1e29]: 🍔
+          - heading "Comida y Restaurante" [level=3] [ref=f1e30]
+          - paragraph [ref=f1e31]: Restaurante, cafetería, dark kitchen, food truck
+          - paragraph [ref=f1e32]: 2 servicios pre-llenados
+        - button "Seleccionar plantilla de Salud y Bienestar" [ref=f1e33] [cursor=pointer]:
+          - generic [ref=f1e34]: ⚕️
+          - heading "Salud y Bienestar" [level=3] [ref=f1e35]
+          - paragraph [ref=f1e36]: Consultorio, clínica dental, psicología, nutrición
+          - paragraph [ref=f1e37]: 2 servicios pre-llenados
+        - button "Seleccionar plantilla de Inmobiliaria" [ref=f1e38] [cursor=pointer]:
+          - generic [ref=f1e39]: 🏠
+          - heading "Inmobiliaria" [level=3] [ref=f1e40]
+          - paragraph [ref=f1e41]: Venta, alquiler, desarrollos, asesoría
+          - paragraph [ref=f1e42]: 2 servicios pre-llenados
+        - button "Seleccionar plantilla de Otro (manual)" [ref=f1e43] [cursor=pointer]:
+          - generic [ref=f1e44]: 📝
+          - heading "Otro (manual)" [level=3] [ref=f1e45]
+          - paragraph [ref=f1e46]: Ninguno de los anteriores — define manualmente

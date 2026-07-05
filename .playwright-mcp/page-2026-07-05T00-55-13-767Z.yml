@@ -1,0 +1,125 @@
+- generic [ref=f1e47]:
+  - navigation "Accesibilidad" [ref=f1e48]:
+    - link "Saltar al contenido principal" [ref=f1e49] [cursor=pointer]:
+      - /url: "#main-content"
+  - banner [ref=f1e50]:
+    - generic [ref=f1e51]:
+      - generic [ref=f1e54]:
+        - generic [ref=f1e55]: Bridge Creative Engine
+        - heading "S5" [level=1] [ref=f1e56]:
+          - generic [ref=f1e57]: S5
+      - generic [ref=f1e58]:
+        - 'generic "Última verificación: 18:50:47" [ref=f1e59]': Conectado via Proxy
+        - button "Settings"
+  - navigation "Tabs principales" [ref=f1e61]:
+    - tablist "Secciones de la app" [ref=f1e62]:
+      - tab "Brief" [selected] [ref=f1e63] [cursor=pointer]
+      - tab "Storyboard" [ref=f1e64] [cursor=pointer]
+      - tab "Export" [ref=f1e65] [cursor=pointer]
+  - main [ref=f1e66]:
+    - generic [ref=f1e67]:
+      - generic [ref=f1e68]:
+        - generic [ref=f1e69]:
+          - heading "Brief Wizard" [level=2] [ref=f1e70]: Brief Wizard
+          - paragraph [ref=f1e71]: 3 pasos · ~5 min. Tu información se guarda localmente.
+        - tablist "Pasos del wizard" [ref=f1e72]:
+          - tab "Negocio" [ref=f1e73]
+          - tab "Fotos Clave" [selected] [ref=f1e74]
+          - tab "Estilo" [ref=f1e75]
+      - generic [ref=f1e114]:
+        - article [ref=f1e115]:
+          - generic [ref=f1e116]:
+            - generic [ref=f1e117]: "Servicio #1"
+            - button "Eliminar servicio Corte y Peinado" [ref=f1e118] [cursor=pointer]: Eliminar
+          - generic [ref=f1e119]:
+            - generic [ref=f1e120]:
+              - generic [ref=f1e121]: Nombre del servicio
+              - textbox "Nombre del servicio" [ref=f1e122]:
+                - /placeholder: Hojalatería y Pintura
+                - text: Corte y Peinado
+            - generic [ref=f1e123]:
+              - generic [ref=f1e124]: Beneficio clave
+              - textbox "Beneficio clave" [ref=f1e125]:
+                - /placeholder: Restauración exacta color de fábrica
+                - text: Encontrá el estilo que te define
+            - generic [ref=f1e126]:
+              - generic [ref=f1e127]: Descripción
+              - textbox "Descripción" [ref=f1e128]: Corte personalizado + peinado profesional
+            - generic [ref=f1e129]:
+              - generic [ref=f1e130]: Precio referencial
+              - textbox "Precio referencial" [ref=f1e131]:
+                - /placeholder: Desde $X
+                - text: Desde $350 MXN
+          - generic [ref=f1e132]:
+            - generic [ref=f1e133]:
+              - generic [ref=f1e134]: Atención (gancho 5s)
+              - textbox "Atención (gancho 5s)" [ref=f1e135]:
+                - /placeholder: ¿Tu auto tiene manchas difíciles?
+                - text: Mujer frente al espejo con cabello sin forma, gesto de frustración
+            - generic [ref=f1e136]:
+              - generic [ref=f1e137]: Interés (5-15s)
+              - textbox "Interés (5-15s)" [ref=f1e138]:
+                - /placeholder: Abrimos cabina presurizada con lavados profundos
+                - text: Tijera cortando con precisión, mechón cayendo, luz cálida
+            - generic [ref=f1e139]:
+              - generic [ref=f1e140]: Deseo (15-25s)
+              - textbox "Deseo (15-25s)" [ref=f1e141]:
+                - /placeholder: Recuperamos textura original de fábrica
+                - text: Cliente mirándose al espejo con sonrisa, cabello nuevo con movimiento
+            - generic [ref=f1e142]:
+              - generic [ref=f1e143]: Acción (CTA)
+              - textbox "Acción (CTA)" [ref=f1e144]:
+                - /placeholder: Agenda tu cotización por WhatsApp hoy
+                - text: Reserva online + Instagram del salón + precio desde $350
+        - article [ref=f1e145]:
+          - generic [ref=f1e146]:
+            - generic [ref=f1e147]: "Servicio #2"
+            - button "Eliminar servicio Coloración y Mechas" [ref=f1e148] [cursor=pointer]: Eliminar
+          - generic [ref=f1e149]:
+            - generic [ref=f1e150]:
+              - generic [ref=f1e151]: Nombre del servicio
+              - textbox "Nombre del servicio" [ref=f1e152]:
+                - /placeholder: Hojalatería y Pintura
+                - text: Coloración y Mechas
+            - generic [ref=f1e153]:
+              - generic [ref=f1e154]: Beneficio clave
+              - textbox "Beneficio clave" [ref=f1e155]:
+                - /placeholder: Restauración exacta color de fábrica
+                - text: Color vibrante y duradero sin dañar tu cabello
+            - generic [ref=f1e156]:
+              - generic [ref=f1e157]: Descripción
+              - textbox "Descripción" [ref=f1e158]: Tonos balayage, mechas californianas, cubre canas
+            - generic [ref=f1e159]:
+              - generic [ref=f1e160]: Precio referencial
+              - textbox "Precio referencial" [ref=f1e161]:
+                - /placeholder: Desde $X
+                - text: Desde $800 MXN
+          - generic [ref=f1e162]:
+            - generic [ref=f1e163]:
+              - generic [ref=f1e164]: Atención (gancho 5s)
+              - textbox "Atención (gancho 5s)" [ref=f1e165]:
+                - /placeholder: ¿Tu auto tiene manchas difíciles?
+                - text: Cabello con canas visibles o color apagado en primer plano
+            - generic [ref=f1e166]:
+              - generic [ref=f1e167]: Interés (5-15s)
+              - textbox "Interés (5-15s)" [ref=f1e168]:
+                - /placeholder: Abrimos cabina presurizada con lavados profundos
+                - text: Tarro de tinte premium, paleta de colores, guantes aplicándolo
+            - generic [ref=f1e169]:
+              - generic [ref=f1e170]: Deseo (15-25s)
+              - textbox "Deseo (15-25s)" [ref=f1e171]:
+                - /placeholder: Recuperamos textura original de fábrica
+                - text: Reflejo del nuevo color bajo luz natural, cliente girando la cabeza
+            - generic [ref=f1e172]:
+              - generic [ref=f1e173]: Acción (CTA)
+              - textbox "Acción (CTA)" [ref=f1e174]:
+                - /placeholder: Agenda tu cotización por WhatsApp hoy
+                - text: Muestra de tonos disponibles + WhatsApp + antes/después
+        - button "Agregar servicio" [ref=f1e175] [cursor=pointer]
+      - generic [ref=f1e106]:
+        - generic [ref=f1e107]: Paso 2 de 3
+        - generic [ref=f1e108]:
+          - button "Atrás" [ref=f1e109] [cursor=pointer]
+          - button "Siguiente" [ref=f1e110] [cursor=pointer]
+  - contentinfo [ref=f1e111]:
+    - generic [ref=f1e112]: Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · 2026

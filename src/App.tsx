@@ -201,10 +201,26 @@ export function App() {
               <span className={cn('h-2 w-2 rounded-full', proxyConnected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500')} />
               {proxyConnected ? 'Conectado via Proxy' : 'Sin conexión al proxy'}
             </div>
+            {/* Botón "Nuevo Proyecto" — siempre visible para empezar de nuevo */}
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('¿Empezar un nuevo proyecto?\n\nSe borrará:\n• El brief actual\n• Las keyframes subidas\n• Los clips generados\n• El master video\n\nEsta acción no se puede deshacer.')) {
+                  resetProject();
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors text-sm font-semibold"
+              aria-label="Empezar un nuevo proyecto desde cero"
+              data-testid="new-project-button"
+            >
+              <i className="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              <span className="hidden sm:inline">Nuevo proyecto</span>
+            </button>
             <button
               type="button"
               onClick={() => setSettingsOpen((v) => !v)}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800"
               aria-label="Settings"
               aria-expanded={settingsOpen}
             >
