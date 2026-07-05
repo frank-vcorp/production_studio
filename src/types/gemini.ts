@@ -47,24 +47,29 @@ export interface GenerateContentResponse {
 }
 
 /**
- * Veo 3.1 — predictLongRunning body shape (ARCH-20260704-11).
+ * Veo 3.1 — predictLongRunning body shape (ARCH-20260704-11 + ARCH-20260705-02).
  * El cliente envía YA el shape Gemini y el Worker hace forward crudo.
  * Spec: https://ai.google.dev/gemini-api/docs/video#veo-3-1
+ *
+ * ARCH-20260705-02:
+ * - `image.data` → `image.bytesBase64Encoded` (campo soportado por Gemini Developer API;
+ *   "data" fue rechazado con 400 "data isn't supported by this model").
+ * - `personGeneration` removido del contrato: 'dont_allow' no es soportado en
+ *   Veo 3.1 público (rechazado con 400 "dont_allow for personGeneration is currently
+ *   not supported"). Si en el futuro se quiere 'allow_adult', agregar de nuevo.
  */
 export interface GenerateVideoRequest {
   /** Una sola instance con prompt + (opcional) imagen de referencia I2V. */
   instances: Array<{
     prompt: string;
     /** Imagen de referencia opcional (keyframe IN como base64). */
-    image?: { data: string; mimeType: string };
+    image?: { bytesBase64Encoded: string; mimeType: string };
   }>;
   /** Parámetros del modelo. */
   parameters: {
     /** 3-8 segundos. */
     durationSeconds: number;
     aspectRatio?: '9:16' | '1:1' | '4:5' | '16:9';
-    /** Default 'dont_allow' para evitar generación de personas reales. */
-    personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all';
     /** Negativa (no implementado en cliente v1). */
     negativePrompt?: string;
   };

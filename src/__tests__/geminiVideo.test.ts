@@ -143,6 +143,47 @@ describe('gemini/video retry + classify', () => {
     expect(e.retryable).toBe(false);
   });
 
+  // ARCH-20260705-02: extracción de mensaje del body JSON estructurado.
+  it('classifyVeoError extrae mensaje de body.error.message (no devuelve "[object Object]")', () => {
+    const e = classifyVeoError({
+      status: 400,
+      body: { error: { message: 'data isn\'t supported by this model' } },
+    });
+    expect(e.message).toBe("data isn't supported by this model");
+    expect(e.message).not.toBe('[object Object]');
+  });
+
+  it('classifyVeoError extrae mensaje de body string', () => {
+    const e = classifyVeoError({ status: 500, body: 'Internal Server Error' });
+    expect(e.message).toBe('Internal Server Error');
+  });
+
+  it('classifyVeoError extrae mensaje de details.error.message (formato GeminiProxyError)', () => {
+    const e = classifyVeoError({
+      status: 400,
+      details: { error: { message: 'dont_allow for personGeneration is currently not supported' } },
+    });
+    expect(e.message).toBe('dont_allow for personGeneration is currently not supported');
+  });
+
+  it('classifyVeoError ignora message "[object Object]" literal y cae al body', () => {
+    const e = classifyVeoError({
+      status: 400,
+      message: '[object Object]',
+      body: { error: { message: 'real error from worker' } },
+    });
+    expect(e.message).toBe('real error from worker');
+  });
+
+  it('classifyVeoError clasifica como safety cuando body.error.message contiene "safety"', () => {
+    const e = classifyVeoError({
+      status: 400,
+      body: { error: { message: 'Content blocked by safety filter' } },
+    });
+    expect(e.code).toBe('safety');
+    expect(e.retryable).toBe(false);
+  });
+
   it('RETRY_DELAYS_MS tiene 5 niveles con backoff exponencial', () => {
     expect(RETRY_DELAYS_MS).toHaveLength(5);
     expect(RETRY_DELAYS_MS[0]).toBe(1000);
@@ -190,7 +231,7 @@ describe('gemini/video retry + classify', () => {
 // ────────────────────────────────────────────────────────────────────────
 
 describe('gemini/video Veo 3.1 body shape + URI download', () => {
-  it('startVideoGeneration envía body con instances[0].prompt e instances[0].image.data (NO input_image en root)', async () => {
+  it('startVideoGeneration envía body con instances[0].image.bytesBase64Encoded (NO data, NO input_image en root) — ARCH-20260705-02', async () => {
     const spy = vi.mocked(geminiClient.generateVideo);
     spy.mockClear();
     impl = async () => ({
@@ -212,17 +253,23 @@ describe('gemini/video Veo 3.1 body shape + URI download', () => {
     // Shape correcto Gemini Veo 3.1
     expect(sent).toHaveProperty('instances');
     expect(sent).toHaveProperty('parameters');
-    const instances = sent.instances as Array<{ prompt: string; image?: { data: string; mimeType: string } }>;
+    const instances = sent.instances as Array<{
+      prompt: string;
+      image?: { bytesBase64Encoded: string; mimeType: string };
+    }>;
     expect(instances).toHaveLength(1);
     expect(instances[0].prompt).toBe('test approved');
     expect(instances[0].image).toBeDefined();
-    expect(instances[0].image?.data).toBe('iVBORw0KGgo=');
+    // ARCH-20260705-02: bytesBase64Encoded (no "data").
+    expect(instances[0].image?.bytesBase64Encoded).toBe('iVBORw0KGgo=');
     expect(instances[0].image?.mimeType).toBe('image/png');
+    expect(instances[0].image).not.toHaveProperty('data');
 
-    const params = sent.parameters as { durationSeconds: number; aspectRatio: string; personGeneration: string };
+    const params = sent.parameters as { durationSeconds: number; aspectRatio: string };
     expect(params.durationSeconds).toBe(4);
     expect(params.aspectRatio).toBe('9:16');
-    expect(params.personGeneration).toBe('dont_allow');
+    // ARCH-20260705-02: personGeneration removido del body — dont_allow no soportado en Veo 3.1 público.
+    expect(params).not.toHaveProperty('personGeneration');
   });
 
   it('extractVideoFromOperation con respuesta Veo 3.1 → llama downloadVideo con la URI correcta', async () => {
