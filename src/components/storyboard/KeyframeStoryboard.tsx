@@ -167,9 +167,9 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
         </span>
       </header>
 
-      {/* ARCH-20260704-09: badges persistentes de progreso. */}
+      {/* ARCH-20260704-09: GenerationProgressBadge (de video) persiste inline;
+          AnalysisProgressBadge ahora se renderiza como overlay sobre el thumbnail. */}
       <div className="flex flex-col gap-1">
-        {kf && <AnalysisProgressBadge keyframeId={kf.id} />}
         {outgoing && <GenerationProgressBadge transitionId={outgoing.id} />}
       </div>
 
@@ -219,6 +219,8 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
             <p className="text-xs text-slate-400">~{remainingSeconds}s restantes</p>
           </div>
         )}
+        {/* ARCH-20260705-03: overlay de análisis igual que el de video (Vision). */}
+        {kf && <AnalysisProgressBadge keyframeId={kf.id} isOverlay />}
       </div>
 
       {/* Acciones */}

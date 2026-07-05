@@ -20,6 +20,27 @@ import type {
 const DEFAULT_BASE_URL = '/api/gemini';
 const DEFAULT_TIMEOUT_MS = 180_000; // 3 min para Veo
 
+/**
+ * Extrae un mensaje legible del body de error de Gemini API.
+ * Maneja los dos formatos comunes:
+ *   - { error: "string error" }
+ *   - { error: { code, message, status } }
+ * ARCH-20260705-03.
+ */
+export function extractErrorMessage(
+  errBody: Record<string, unknown>,
+  httpStatus: number,
+): string {
+  const e = errBody.error;
+  if (typeof e === 'string' && e.trim()) return e;
+  if (e && typeof e === 'object') {
+    const obj = e as { message?: string; code?: number };
+    if (typeof obj.message === 'string' && obj.message.trim()) return obj.message;
+    if (typeof obj.code === 'number') return `HTTP ${obj.code}`;
+  }
+  return `Error HTTP ${httpStatus}`;
+}
+
 export class GeminiProxyError extends Error {
   constructor(
     public status: number,
@@ -82,7 +103,7 @@ export class GeminiProxyClient {
 
         if (!res.ok) {
           const errBody = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-          const message = String(errBody.error ?? `HTTP ${res.status}`);
+          const message = extractErrorMessage(errBody, res.status);
 
           if (this.shouldRetry(res.status)) {
             lastError = new GeminiProxyError(res.status, message, errBody);
@@ -165,7 +186,7 @@ export class GeminiProxyClient {
       const res = await fetch(url, { method: 'GET', signal: controller.signal });
       if (!res.ok) {
         const errBody = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        const message = String(errBody.error ?? `HTTP ${res.status}`);
+        const message = extractErrorMessage(errBody, res.status);
         throw new GeminiProxyError(res.status, message, errBody);
       }
       return await res.blob();
