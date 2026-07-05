@@ -13,6 +13,7 @@ import type { Keyframe, KeyframeRole, CameraSpec } from '@/types/keyframe';
 import { STORYBOARD_SLOTS } from '@/types/keyframe';
 import type { KeyframeTransition, AidaNodeKey, PromptVersion } from '@/types/transition';
 import { TRANSITION_DURATIONS } from '@/types/transition';
+import type { AnalysisJob, GenerationJob } from '@/types/progressJobs';
 import { idbStorage, blobToBase64, base64ToBlob } from './idbStorage';
 
 const PROJECT_STORE_VERSION = 1;
@@ -135,6 +136,9 @@ export const useProjectStore = create<ProjectState>()(
       promptGateOpen: false,
       lastError: null,
 
+      analysisJobs: new Map<string, AnalysisJob>(),
+      generationJobs: new Map<string, GenerationJob>(),
+
       loadBrief: (brief) => {
         const brandKit = get().brandKit ?? {
           brandName: brief.business.name,
@@ -181,6 +185,8 @@ export const useProjectStore = create<ProjectState>()(
           activeTransitionId: null,
           promptGateOpen: false,
           lastError: null,
+          analysisJobs: new Map(),
+          generationJobs: new Map(),
         });
       },
 
@@ -490,6 +496,50 @@ export const useProjectStore = create<ProjectState>()(
         };
         set({ manifest });
       },
+
+      // ARCH-20260704-09: badges de progreso persistentes.
+      startAnalysisJob: (keyframeId: string) =>
+        set((s) => {
+          const next = new Map(s.analysisJobs);
+          next.set(keyframeId, { keyframeId, state: 'analyzing', startedAt: Date.now() });
+          return { analysisJobs: next };
+        }),
+
+      finishAnalysisJob: (keyframeId: string, ok: boolean, errorMessage?: string) =>
+        set((s) => {
+          const cur = s.analysisJobs.get(keyframeId);
+          const next = new Map(s.analysisJobs);
+          next.set(keyframeId, {
+            keyframeId,
+            state: ok ? 'done' : 'failed',
+            startedAt: cur?.startedAt,
+            finishedAt: Date.now(),
+            errorMessage,
+          });
+          return { analysisJobs: next };
+        }),
+
+      startGenerationJob: (transitionId: string) =>
+        set((s) => {
+          const next = new Map(s.generationJobs);
+          next.set(transitionId, { transitionId, state: 'generating', startedAt: Date.now() });
+          return { generationJobs: next };
+        }),
+
+      finishGenerationJob: (transitionId: string, ok: boolean, errorMessage?: string, attempts?: number) =>
+        set((s) => {
+          const cur = s.generationJobs.get(transitionId);
+          const next = new Map(s.generationJobs);
+          next.set(transitionId, {
+            transitionId,
+            state: ok ? 'done' : 'failed',
+            startedAt: cur?.startedAt,
+            finishedAt: Date.now(),
+            attempts,
+            errorMessage,
+          });
+          return { generationJobs: next };
+        }),
     }),
     {
       name: 'bridge-project',
@@ -497,6 +547,9 @@ export const useProjectStore = create<ProjectState>()(
       storage: createJSONStorage(() => idbStorage),
       partialize: (state): PersistedShape => {
         const { kfArr, trArr, clipArr } = mapsToArrays(state);
+        // ARCH-20260704-09: analysisJobs y generationJobs son EFÍMEROS.
+        // partialize es allow-list → NO se incluyen en IDB. Si alguna vez se
+        // migra a omit-list, agregar ambas keys explícitamente.
         return {
           brief: state.brief,
           executableProject: state.executableProject,

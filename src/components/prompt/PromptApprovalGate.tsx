@@ -21,6 +21,9 @@ export function PromptApprovalGate() {
   const brief = useProjectStore((s) => s.brief);
   const brandKit = useProjectStore((s) => s.brandKit);
   const addToast = useUIStore((s) => s.addToast);
+  // ARCH-20260704-09: jobs persistentes de generación.
+  const startGenerationJob = useProjectStore((s) => s.startGenerationJob);
+  const finishGenerationJob = useProjectStore((s) => s.finishGenerationJob);
 
   const transition = activeId ? transitions.get(activeId) : undefined;
   const fromKf = transition ? keyframes.get(transition.fromKeyframe) : undefined;
@@ -67,13 +70,17 @@ export function PromptApprovalGate() {
     approveTransitionPrompt(transition.id, draft.trim());
     addToast({ kind: 'success', message: 'Prompt aprobado. Lanzando Veo...' });
     closePromptGate();
+    // ARCH-20260704-09: badge persistente de generación.
+    startGenerationJob(transition.id);
     try {
       setGenerating(true);
       await generateTransition(transition.id);
+      finishGenerationJob(transition.id, true);
       // Tras aprobar, simulamos la generación: en S1 el cliente llama Veo vía service.
       // Para evitar bloquear el flujo cuando no hay API key, dejamos el estado en 'generating'
       // y el caller integrará el resultado cuando vuelva.
     } catch (e) {
+      finishGenerationJob(transition.id, false, (e as Error).message);
       addToast({ kind: 'error', message: (e as Error).message ?? 'Error al lanzar Veo' });
     } finally {
       setGenerating(false);

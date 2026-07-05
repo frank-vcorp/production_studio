@@ -32,6 +32,9 @@ export function SplitViewHost(): JSX.Element | null {
   const keyframes = useProjectStore((s) => s.keyframes);
   const approveTransitionPrompt = useProjectStore((s) => s.approveTransitionPrompt);
   const generateTransition = useProjectStore((s) => s.generateTransition);
+  // ARCH-20260704-09: jobs persistentes de generación.
+  const startGenerationJob = useProjectStore((s) => s.startGenerationJob);
+  const finishGenerationJob = useProjectStore((s) => s.finishGenerationJob);
 
   const [versions, setVersions] = useState<PromptVersion[]>([]);
 
@@ -74,15 +77,19 @@ export function SplitViewHost(): JSX.Element | null {
         [newVersion, ...prev.filter((v) => v.version !== newVersion.version)].slice(0, 5),
       );
       addToast({ kind: 'success', message: `Prompt aprobado: ${transition.nodeKey}.` });
+      // ARCH-20260704-09: badge persistente de generación.
+      startGenerationJob(transition.id);
       try {
         await generateTransition(transition.id);
+        finishGenerationJob(transition.id, true);
         addToast({ kind: 'info', message: 'Regenerando clip con Veo (~2 min)…' });
       } catch (e) {
+        finishGenerationJob(transition.id, false, (e as Error).message);
         addToast({ kind: 'warning', message: `Aprobado pero Veo no lanzó: ${(e as Error).message}` });
       }
       closeSplitView();
     },
-    [transition, approveTransitionPrompt, addToast, generateTransition, closeSplitView],
+    [transition, approveTransitionPrompt, addToast, generateTransition, closeSplitView, startGenerationJob, finishGenerationJob],
   );
 
   // ─────────────────────────────────────────────────────────────
@@ -159,20 +166,23 @@ export function SplitViewHost(): JSX.Element | null {
 
         // 3) Disparar generación (status pasa a 'generating'; el jobQueue
         // procesará el Veo I2V en background)
+        startGenerationJob(transition.id);
         await generateTransition(transition.id);
+        finishGenerationJob(transition.id, true);
 
         addToast({
           kind: 'success',
           message: `Visual regenerado (${transition.nodeKey}). Veo procesando ~2 min…`,
         });
       } catch (err) {
+        finishGenerationJob(transition.id, false, (err as Error).message);
         addToast({
           kind: 'error',
           message: `Error al regenerar visual: ${(err as Error).message}`,
         });
       }
     },
-    [transition, keyframeFrom, keyframeTo, checkApprovalGate, approveTransitionPrompt, recordNewVersion, generateTransition, addToast],
+    [transition, keyframeFrom, keyframeTo, checkApprovalGate, approveTransitionPrompt, recordNewVersion, generateTransition, addToast, startGenerationJob, finishGenerationJob],
   );
 
   // ─────────────────────────────────────────────────────────────

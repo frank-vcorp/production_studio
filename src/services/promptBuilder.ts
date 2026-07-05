@@ -41,12 +41,12 @@ export function formatVisualAnalysisForPrompt(va: VisualAnalysis | undefined, la
 
 export function buildCameraMovement(spec: CameraSpec, _nodeKey?: AidaNodeKey): string {
   const speedMap: Record<CameraSpec['speed'], string> = {
-    slow: 'slow-motion (24fps)',
-    medium: 'steady',
-    fast: 'fast energetic',
+    slow: 'cámara lenta (24fps)',
+    medium: 'ritmo estable',
+    fast: 'energía rápida',
   };
   return [
-    `Camera: ${spec.movement}, ${spec.framing}, ${spec.angle}, ${speedMap[spec.speed]}.`,
+    `Movimiento de cámara: ${spec.movement}, encuadre ${spec.framing}, ángulo ${spec.angle}, ${speedMap[spec.speed]}.`,
   ].join('');
 }
 
@@ -56,10 +56,10 @@ export function buildKeyframeTransitionPrompt(input: BuildTransitionPromptInput)
   const fromAnchor = formatVisualAnalysisForPrompt(fromKf.visualAnalysis, 'INICIAL');
   const toAnchor = formatVisualAnalysisForPrompt(toKf.visualAnalysis, 'FINAL');
   const cam = buildCameraMovement(cameraSpec, nodeKey);
-  const brand = brandKit ? `Brand voice: ${brandKit.tone.join(', ')}.` : '';
+  const brand = brandKit ? `Tono de marca: ${brandKit.tone.join(', ')}.` : '';
   const intent = humanIntent ? `Intención humana: ${humanIntent}.` : '';
   return [
-    `Genera un clip de video de transición I2V (Image-to-Video), ${input.serviceNodeText ? `correspondiente al nodo ${nodeKey}: "${input.serviceNodeText}".` : `correspondiente al nodo ${nodeKey} del modelo AIDA.`}`,
+    `Genera un clip de video de transición I2V (Image-to-Video), ${input.serviceNodeText ? `correspondiente al nodo ${nodeKey}: "${input.serviceNodeText}".` : `correspondiente al nodo «${nodeKey}» del modelo AIDA (Attention / Interest / Desire / Action).`}`,
     ``,
     NO_INVENTE_RULE,
     ``,
@@ -70,7 +70,7 @@ export function buildKeyframeTransitionPrompt(input: BuildTransitionPromptInput)
     cam,
     brand,
     intent,
-    `Duración objetivo: ~${nodeDurations(nodeKey)} segundos. Aspecto 9:16.`,
+    `Duración objetivo: ~${nodeDurations(nodeKey)} segundos. Formato vertical 9:16 (1080×1920).`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -108,7 +108,7 @@ export function buildImage3Prompt(input: BuildImage3PromptInput): string {
     ``,
     cam,
     brand,
-    `Salida 9:16 vertical, aspecto cinematográfico, sin marcas de agua, sin texto en pantalla.`,
+    `Salida en formato vertical 9:16 (1080×1920), aspecto cinematográfico, sin marcas de agua, sin texto superpuesto.`,
   ]
     .filter(Boolean)
     .join('\n');

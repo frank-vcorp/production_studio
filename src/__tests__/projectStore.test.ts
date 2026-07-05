@@ -131,7 +131,7 @@ describe('projectStore', () => {
           dominantShapes: ['rectangle'],
           technicalNotes: 'mock',
           analyzedAt: Date.now(),
-          model: 'gemini-2.5-pro-vision',
+          model: 'gemini-2.5-flash',
           confidence: 0.9,
         },
         humanIntent: 'abrir a motor sucio',
@@ -195,5 +195,65 @@ describe('projectStore', () => {
     expect(afterTrans?.veoOperationId).toBeUndefined();
     expect(afterTrans?.generatedAt).toBeUndefined();
     expect(afterTrans?.promptHistory.length).toBe(0);
+  });
+
+  // ARCH-20260704-09: tests para badges persistentes de progreso.
+  it('startAnalysisJob crea job en estado analyzing', () => {
+    const { startAnalysisJob } = useProjectStore.getState();
+    startAnalysisJob('kf_atencion_in');
+    const job = useProjectStore.getState().analysisJobs.get('kf_atencion_in');
+    expect(job?.state).toBe('analyzing');
+    expect(typeof job?.startedAt).toBe('number');
+  });
+
+  it('finishAnalysisJob con ok=true marca done, ok=false marca failed con errorMessage', () => {
+    const { startAnalysisJob, finishAnalysisJob } = useProjectStore.getState();
+    startAnalysisJob('kf_deseo_in');
+    finishAnalysisJob('kf_deseo_in', true);
+    expect(useProjectStore.getState().analysisJobs.get('kf_deseo_in')?.state).toBe('done');
+    expect(useProjectStore.getState().analysisJobs.get('kf_deseo_in')?.errorMessage).toBeUndefined();
+
+    startAnalysisJob('kf_interes_in');
+    finishAnalysisJob('kf_interes_in', false, 'fallo de prueba');
+    const failed = useProjectStore.getState().analysisJobs.get('kf_interes_in');
+    expect(failed?.state).toBe('failed');
+    expect(failed?.errorMessage).toBe('fallo de prueba');
+  });
+
+  it('startGenerationJob y finishGenerationJob modifican generationJobs', () => {
+    const { startGenerationJob, finishGenerationJob } = useProjectStore.getState();
+    startGenerationJob('trans_atencion');
+    const job = useProjectStore.getState().generationJobs.get('trans_atencion');
+    expect(job?.state).toBe('generating');
+    expect(typeof job?.startedAt).toBe('number');
+
+    finishGenerationJob('trans_atencion', true, undefined, 2);
+    const done = useProjectStore.getState().generationJobs.get('trans_atencion');
+    expect(done?.state).toBe('done');
+    expect(done?.attempts).toBe(2);
+
+    startGenerationJob('trans_interes');
+    finishGenerationJob('trans_interes', false, 'quota exceeded', 5);
+    const failed = useProjectStore.getState().generationJobs.get('trans_interes');
+    expect(failed?.state).toBe('failed');
+    expect(failed?.errorMessage).toBe('quota exceeded');
+    expect(failed?.attempts).toBe(5);
+  });
+
+  it('partialize NO incluye analysisJobs ni generationJobs (jobs efímeros)', () => {
+    // Forzar que existan jobs en el estado.
+    useProjectStore.getState().startAnalysisJob('kf_test_a');
+    useProjectStore.getState().startGenerationJob('trans_test_g');
+
+    // Inspeccionar manualmente lo que devolvería partialize.
+    // Accedemos al storage adapter de zustand para sacar el shape persistido.
+    const state = useProjectStore.getState();
+    const partializeFn = (useProjectStore as unknown as {
+      persist: { getOptions: () => { partialize?: (s: typeof state) => unknown } };
+    }).persist.getOptions().partialize;
+    expect(partializeFn).toBeDefined();
+    const persisted = partializeFn!(state) as Record<string, unknown>;
+    expect(persisted.analysisJobs).toBeUndefined();
+    expect(persisted.generationJobs).toBeUndefined();
   });
 });

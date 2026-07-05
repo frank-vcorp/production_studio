@@ -134,7 +134,7 @@ describe('gemini/video retry + classify', () => {
 
   it('generateTransitionWithRetry respeta approval gate (throw si status != approved)', async () => {
     const t = { ...transition, status: 'pending' as const };
-    await expect(generateTransitionWithRetry(t, kfFrom, kfTo)).rejects.toThrow(/not approved/);
+    await expect(generateTransitionWithRetry(t, kfFrom, kfTo)).rejects.toThrow(/no está aprobada/);
   });
 
   it('generateTransitionWithRetry onAttempt callback llamado N veces en quota retryable', async () => {

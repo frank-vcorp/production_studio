@@ -36,7 +36,7 @@ const fakeVA: VisualAnalysis = {
   dominantShapes: ['círculo', 'rectángulo'],
   technicalNotes: 'No hay personas visibles, manchas de aceite marcadas',
   analyzedAt: 0,
-  model: 'gemini-2.5-pro-vision',
+  model: 'gemini-2.5-flash',
   confidence: 0.92,
 };
 
@@ -57,15 +57,18 @@ describe('promptBuilder', () => {
     expect(fromText).toMatch(/Llantas en taller/);
   });
 
-  it('buildCameraMovement refleja movement + framing + angle + speed', () => {
+  it('buildCameraMovement refleja movement + framing + angle + speed en español', () => {
     const out = buildCameraMovement(cam, 'deseo');
+    // ARCH-20260704-09: localization a español.
+    expect(out).toContain('Movimiento de cámara:');
+    expect(out).not.toContain('Camera:');
     expect(out).toContain('crane up');
     expect(out).toContain('macro');
     expect(out).toContain('low angle');
-    expect(out).toContain('slow-motion');
+    expect(out).toContain('cámara lenta (24fps)');
   });
 
-  it('buildKeyframeTransitionPrompt incluye regla + 2 anclas + intención + cámara', () => {
+  it('buildKeyframeTransitionPrompt incluye regla + 2 anclas + intención + cámara en español', () => {
     const from = makeKf({ visualAnalysis: fakeVA });
     const to = makeKf({ id: 'kf_out', role: 'atencion_out', label: 'Atención OUT', visualAnalysis: { ...fakeVA, technicalNotes: 'cuadro final' } });
     const prompt = buildKeyframeTransitionPrompt({
@@ -74,7 +77,7 @@ describe('promptBuilder', () => {
       nodeKey: 'atencion',
       cameraSpec: cam,
       humanIntent: 'mostrar motor sucio',
-      brandKit: null,
+      brandKit: { brandName: 'X', tone: ['cercano', 'aspiracional'], palette: { primary: '', secondary: '', accent: '', bg: '', fg: '' }, fonts: { heading: '', body: '', mono: '' } },
       brief: null,
       serviceNodeText: 'Atención al cliente',
     });
@@ -86,9 +89,33 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('mostrar motor sucio');
     expect(prompt).toContain('Atención al cliente');
     expect(prompt).toContain('9:16');
+    expect(prompt).toContain('Formato vertical');
+    // ARCH-20260704-09: asegurar localizaciones en español.
+    expect(prompt).not.toContain('Brand voice:');
+    expect(prompt).not.toContain('Camera:');
+    expect(prompt).not.toContain('Aspecto 9:16.');
+    expect(prompt).toContain('Movimiento de cámara:');
+    expect(prompt).toContain('Tono de marca:');
   });
 
-  it('buildImage3Prompt incluye regla + ancla + transformación', () => {
+  it('buildKeyframeTransitionPrompt expande nodo AIDA cuando no hay serviceNodeText', () => {
+    const from = makeKf({ visualAnalysis: fakeVA });
+    const to = makeKf({ id: 'kf_out', role: 'atencion_out', label: 'Atención OUT', visualAnalysis: fakeVA });
+    const prompt = buildKeyframeTransitionPrompt({
+      fromKf: from,
+      toKf: to,
+      nodeKey: 'atencion',
+      cameraSpec: cam,
+      humanIntent: 'mostrar motor sucio',
+      brandKit: null,
+      brief: null,
+      serviceNodeText: undefined,
+    });
+    expect(prompt).toContain('Attention / Interest / Desire / Action');
+    expect(prompt).toContain('«atencion»');
+  });
+
+  it('buildImage3Prompt incluye regla + ancla + transformación en español', () => {
     const kf = makeKf({ visualAnalysis: fakeVA });
     const prompt = buildImage3Prompt({
       kfIn: kf,
@@ -102,6 +129,9 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('NO INVENTES');
     expect(prompt).toContain('ampliar al motor');
     expect(prompt).toContain('cinematográfico');
+    // ARCH-20260704-09: mantener regla mayúsculas Imagen 3 + texto en español.
+    expect(prompt).toContain('GENERA');
+    expect(prompt).toContain('Salida en formato vertical');
   });
 
   it('buildTTSPrompt devuelve voice config en español', () => {

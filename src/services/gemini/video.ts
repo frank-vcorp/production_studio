@@ -66,13 +66,13 @@ export async function pollVideoOperation(name: string): Promise<VideoOperation> 
     await new Promise((r) => setTimeout(r, delay));
     delay = Math.min(delay + 2000, POLL_INTERVAL_MS + 8000); // gradual ramp
   }
-  throw new GeminiProxyError(504, 'Veo polling timeout', { name, last: lastOp });
+  throw new GeminiProxyError(504, 'Tiempo de espera agotado mientras Veo generaba el clip', { name, last: lastOp });
 }
 
 /** Descarga el video resultado y devuelve Blob + URL */
 export function extractVideoFromOperation(op: VideoOperation): { blob: Blob; url: string } {
   if (!op.done) {
-    throw new GeminiProxyError(409, 'Operation not done yet', {});
+    throw new GeminiProxyError(409, 'La operación de Veo aún no ha terminado', {});
   }
   type InlinePair = { uri?: string; inlineData?: { mimeType: string; data: string } };
   const videos: InlinePair[] =
@@ -82,7 +82,7 @@ export function extractVideoFromOperation(op: VideoOperation): { blob: Blob; url
       .filter((v): v is InlinePair => v !== null)) ??
     [];
   const v = videos[0];
-  if (!v) throw new GeminiProxyError(500, 'Veo response without videos', { op });
+  if (!v) throw new GeminiProxyError(500, 'Veo no devolvió ningún video en la respuesta', { op });
 
   if (v.inlineData) {
     const blob = base64ToBlob(v.inlineData.data, v.inlineData.mimeType ?? 'video/mp4');
@@ -93,9 +93,9 @@ export function extractVideoFromOperation(op: VideoOperation): { blob: Blob; url
     // En S1 + proxy: la URL no es pública; pedimos al proxy que la descargue.
     // Política: si no inline, rechazamos para que el cliente sepa que el proxy debe
     // entregar el binario por una ruta /api/gemini/downloadVideo.
-    throw new GeminiProxyError(501, 'URL-only videos not supported in S1; require inline data', { uri: v.uri });
+    throw new GeminiProxyError(501, 'Videos solo con URL no soportados en esta versión; se requieren datos embebidos', { uri: v.uri });
   }
-  throw new GeminiProxyError(500, 'Video has neither inline nor uri', {});
+  throw new GeminiProxyError(500, 'El video de Veo no contiene datos embebidos ni URL', {});
 }
 
 /** Flujo completo: start + poll + blob */
@@ -181,7 +181,7 @@ export async function generateTransitionWithRetry(
       if (transition.status !== 'approved') {
         throw new GeminiProxyError(
           412,
-          `Transition not approved (status: ${transition.status})`,
+          `La transición no está aprobada (estado: ${transition.status})`,
           { status: transition.status },
         );
       }
@@ -199,7 +199,7 @@ export async function generateTransitionWithRetry(
       const veoErr = err instanceof GeminiProxyError ? classifyVeoError(err) : classifyVeoError(err);
       veoErr.attemptNumber = attempt;
       lastError = veoErr;
-      console.warn(`[VeoClient] Attempt ${attempt} failed:`, veoErr.code, veoErr.message);
+      console.warn(`[VeoClient] Intento ${attempt} falló:`, veoErr.code, veoErr.message);
 
       if (!veoErr.retryable) {
         // Safety u otro no-retryable → throw inmediato (no intentemos de nuevo).
@@ -207,11 +207,11 @@ export async function generateTransitionWithRetry(
       }
       if (attempt < RETRY_DELAYS_MS.length) {
         const delay = RETRY_DELAYS_MS[attempt - 1];
-        console.log(`[VeoClient] Retrying in ${delay}ms...`);
+        console.log(`[VeoClient] Reintentando en ${delay}ms...`);
         await new Promise<void>((r) => setTimeout(r, delay));
       }
     }
   }
 
-  throw lastError ?? new Error('Max retries exceeded');
+  throw lastError ?? new Error('Se agotaron todos los reintentos');
 }

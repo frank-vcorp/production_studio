@@ -51,6 +51,8 @@ REGLAS:
 - "dominantShapes" = formas geométricas que predominan.
 - "technicalNotes" = detalles útiles para prompts.
 - "confidence" = 0.0-1.0.
+- Responde TODOS los valores de texto en español (subject, environment, lighting, composition, cameraPosition, technicalNotes, dominantShapes, textures).
+- Los nombres de campos (keys del JSON) se mantienen en inglés, pero los valores (values) van en español.
 
 Imagen a analizar:
 `;
@@ -75,7 +77,7 @@ function asConfidence(v: unknown): number {
 }
 
 function validateAnalysis(raw: unknown): VisualAnalysis {
-  if (!raw || typeof raw !== 'object') throw new GeminiProxyError(500, 'Vision body is not an object', {});
+  if (!raw || typeof raw !== 'object') throw new GeminiProxyError(500, 'La respuesta de Vision no es un objeto válido', {});
   const r = raw as RawVisualAnalysis;
   const subject = asString(r.subject, 8);
   const environment = asString(r.environment, 8);
@@ -85,10 +87,10 @@ function validateAnalysis(raw: unknown): VisualAnalysis {
   const technicalNotes = asString(r.technicalNotes, 8);
   const colorPalette = asStringArray(r.colorPalette);
   if (!subject || !environment || !lighting || !composition || !cameraPosition || !technicalNotes) {
-    throw new GeminiProxyError(500, 'Vision schema incomplete', { raw });
+    throw new GeminiProxyError(500, 'El esquema de Vision está incompleto', { raw });
   }
   if (colorPalette.length < 1) {
-    throw new GeminiProxyError(500, 'Vision: colorPalette requerido', { raw });
+    throw new GeminiProxyError(500, 'Vision: la paleta de colores es obligatoria', { raw });
   }
   return {
     subject,
@@ -102,7 +104,7 @@ function validateAnalysis(raw: unknown): VisualAnalysis {
     dominantShapes: asStringArray(r.dominantShapes),
     technicalNotes,
     analyzedAt: Date.now(),
-    model: 'gemini-2.5-pro-vision',
+    model: 'gemini-2.5-flash',
     confidence: asConfidence(r.confidence),
   };
 }

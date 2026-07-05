@@ -6,6 +6,7 @@
 import type { MasterBrief, BusinessIdentity, ServiceToAdvertise, GlobalAdVision, AidaStageKey } from './brief';
 import type { Keyframe, KeyframeRole } from './keyframe';
 import type { KeyframeTransition, AidaNodeKey } from './transition';
+import type { AnalysisJob, GenerationJob } from './progressJobs';
 
 export interface BrandKit {
   brandName: string;
@@ -144,6 +145,11 @@ export interface ProjectState {
   promptGateOpen: boolean;
   lastError: string | null;
 
+  // ARCH-20260704-09: jobs efímeros de progreso (análisis / generación).
+  // NO se persisten en IDB (ver `partialize` en projectStore).
+  analysisJobs: Map<string, AnalysisJob>;
+  generationJobs: Map<string, GenerationJob>;
+
   // Acciones (signatures, no persistidas)
   loadBrief: (brief: MasterBrief) => void;
   resetProject: () => void;
@@ -173,6 +179,12 @@ export interface ProjectState {
 
   assembleMaster: () => Promise<void>;
   updateManifest: () => void;
+
+  // ARCH-20260704-09: acciones para badges de progreso persistentes.
+  startAnalysisJob: (keyframeId: string) => void;
+  finishAnalysisJob: (keyframeId: string, ok: boolean, errorMessage?: string) => void;
+  startGenerationJob: (transitionId: string) => void;
+  finishGenerationJob: (transitionId: string, ok: boolean, errorMessage?: string, attempts?: number) => void;
 }
 
 /** Tags UI state (no persistido) */

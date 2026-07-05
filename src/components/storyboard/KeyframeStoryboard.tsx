@@ -6,6 +6,8 @@ import { Button } from '@/components/common/Button';
 import { analyzeImageForVeo } from '@/services/gemini/imageAnalysis';
 import { ariaLabelForKeyframe } from '@/utils/a11y';
 import { IntentTextarea } from './IntentTextarea';
+import { AnalysisProgressBadge } from './AnalysisProgressBadge';
+import { GenerationProgressBadge } from '@/components/generation/GenerationProgressBadge';
 import type { Keyframe, KeyframeRole, KeyframeStatus } from '@/types/keyframe';
 import { STORYBOARD_SLOTS, STORYBOARD_STRUCTURE } from '@/types/keyframe';
 
@@ -43,6 +45,8 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
   const analyzeKeyframe = useProjectStore((s) => s.analyzeKeyframe);
   const approveKeyframe = useProjectStore((s) => s.approveKeyframe);
   const transitions = useProjectStore((s) => s.transitions);
+  const startAnalysisJob = useProjectStore((s) => s.startAnalysisJob);
+  const finishAnalysisJob = useProjectStore((s) => s.finishAnalysisJob);
   const openSplitView = useUIStore((s) => s.openSplitView);
   const addToast = useUIStore((s) => s.addToast);
 
@@ -57,6 +61,8 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
       addToast({ kind: 'warning', message: 'Sube una imagen primero.' });
       return;
     }
+    // ARCH-20260704-09: badge persistente de análisis.
+    startAnalysisJob(kf.id);
     try {
       addToast({ kind: 'info', message: `Analizando ${label} con Gemini Vision...` });
       await analyzeKeyframe(kf.id);
@@ -70,12 +76,14 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
         }
         return s;
       });
+      finishAnalysisJob(kf.id, true);
       addToast({ kind: 'success', message: `${label} analizada.` });
     } catch (e) {
       const msg = (e as Error).message ?? 'Error';
+      finishAnalysisJob(kf.id, false, msg);
       addToast({ kind: 'error', message: `Error al analizar: ${msg}` });
     }
-  }, [analyzeKeyframe, kf, addToast, label]);
+  }, [analyzeKeyframe, kf, addToast, label, startAnalysisJob, finishAnalysisJob]);
 
   const handleApprove = useCallback(() => {
     if (kf) approveKeyframe(kf.id);
@@ -138,6 +146,12 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
           {STATUS_LABEL[status]}
         </span>
       </header>
+
+      {/* ARCH-20260704-09: badges persistentes de progreso. */}
+      <div className="flex flex-col gap-1">
+        {kf && <AnalysisProgressBadge keyframeId={kf.id} />}
+        {outgoing && <GenerationProgressBadge transitionId={outgoing.id} />}
+      </div>
 
       {/* Thumbnail / dropzone */}
       <div className="relative h-44 rounded-xl overflow-hidden bg-slate-950 border border-dashed border-slate-800">
@@ -255,6 +269,8 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
   const keyframes = useProjectStore((s) => s.keyframes);
   const uploadKeyframeImage = useProjectStore((s) => s.uploadKeyframeImage);
   const addToast = useUIStore((s) => s.addToast);
+  const startAnalysisJob = useProjectStore((s) => s.startAnalysisJob);
+  const finishAnalysisJob = useProjectStore((s) => s.finishAnalysisJob);
 
   const onPickFile = useCallback(
     (role: KeyframeRole) => {
@@ -264,6 +280,7 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
       input.onchange = async () => {
         const file = input.files?.[0];
         if (!file) return;
+        const kfId = `kf_${role}`;
         try {
           // ARCH-20260704-08: detectar reupload ANTES de la actualización para
           // mostrar un toast informativo y propagar el flag al store. Si el
@@ -271,7 +288,7 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
           // estado (uploaded, analyzed, generated, approved, failed) se
           // considera reupload y dispara el reset completo.
           const wasReupload =
-            (useProjectStore.getState().keyframes.get(`kf_${role}`)?.status ?? 'empty') !== 'empty';
+            (useProjectStore.getState().keyframes.get(kfId)?.status ?? 'empty') !== 'empty';
           await uploadKeyframeImage(role, file, wasReupload);
           if (wasReupload) {
             // ARCH-20260704-08: notificar al usuario que el reemplazo implica
@@ -285,23 +302,27 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
           // S5 §Tarea 5.1 fix: auto-analizar después de subir para que el prompt
           // approval gate tenga el visualAnalysis disponible sin click manual.
           addToast({ kind: 'info', message: `Analizando ${role} con Gemini Vision...` });
+          // ARCH-20260704-09: badge persistente de análisis.
+          startAnalysisJob(kfId);
           try {
             const { analyzeImageForVeo } = await import('@/services/gemini/imageAnalysis');
-            const updatedKf = useProjectStore.getState().keyframes.get(`kf_${role}`);
+            const updatedKf = useProjectStore.getState().keyframes.get(kfId);
             if (updatedKf?.blob) {
               const va = await analyzeImageForVeo(updatedKf.blob);
               useProjectStore.setState((s) => {
-                const cur = s.keyframes.get(`kf_${role}`);
+                const cur = s.keyframes.get(kfId);
                 if (cur) {
                   const next = new Map(s.keyframes);
-                  next.set(`kf_${role}`, { ...cur, visualAnalysis: va, status: 'analyzed' });
+                  next.set(kfId, { ...cur, visualAnalysis: va, status: 'analyzed' });
                   return { keyframes: next };
                 }
                 return s;
               });
+              finishAnalysisJob(kfId, true);
               addToast({ kind: 'success', message: `${role} analizada. Lista para generar clip.` });
             }
           } catch (e) {
+            finishAnalysisJob(kfId, false, (e as Error).message);
             addToast({ kind: 'warning', message: `Análisis falló: ${(e as Error).message}. Puedes reintentar con el botón "Analizar".` });
           }
         } catch (e) {
@@ -310,7 +331,7 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
       };
       input.click();
     },
-    [uploadKeyframeImage, addToast],
+    [uploadKeyframeImage, addToast, startAnalysisJob, finishAnalysisJob],
   );
 
   if (!briefReady) {

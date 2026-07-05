@@ -51,7 +51,7 @@ export interface VisualAnalysis {
   dominantShapes: string[];
   technicalNotes: string;
   analyzedAt: number;
-  model: 'gemini-2.5-pro-vision';
+  model: 'gemini-2.5-flash';
   /** 0-1, alerta si < 0.4 */
   confidence: number;
 }
