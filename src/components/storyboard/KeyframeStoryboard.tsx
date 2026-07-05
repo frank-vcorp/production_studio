@@ -267,6 +267,28 @@ export function KeyframeStoryboard({ briefReady }: StoryboardProps) {
         try {
           await uploadKeyframeImage(role, file);
           addToast({ kind: 'success', message: `Imagen subida a ${role}.` });
+          // S5 §Tarea 5.1 fix: auto-analizar después de subir para que el prompt
+          // approval gate tenga el visualAnalysis disponible sin click manual.
+          addToast({ kind: 'info', message: `Analizando ${role} con Gemini Vision...` });
+          try {
+            const { analyzeImageForVeo } = await import('@/services/gemini/imageAnalysis');
+            const updatedKf = useProjectStore.getState().keyframes.get(`kf_${role}`);
+            if (updatedKf?.blob) {
+              const va = await analyzeImageForVeo(updatedKf.blob);
+              useProjectStore.setState((s) => {
+                const cur = s.keyframes.get(`kf_${role}`);
+                if (cur) {
+                  const next = new Map(s.keyframes);
+                  next.set(`kf_${role}`, { ...cur, visualAnalysis: va, status: 'analyzed' });
+                  return { keyframes: next };
+                }
+                return s;
+              });
+              addToast({ kind: 'success', message: `${role} analizada. Lista para generar clip.` });
+            }
+          } catch (e) {
+            addToast({ kind: 'warning', message: `Análisis falló: ${(e as Error).message}. Puedes reintentar con el botón "Analizar".` });
+          }
         } catch (e) {
           addToast({ kind: 'error', message: (e as Error).message ?? 'Error al subir' });
         }
