@@ -42,6 +42,12 @@ const TABS: Array<{ id: TabId; label: string; icon: string }> = [
 ];
 
 export function App() {
+  // Build marker v1.0.0-build-2026-07-04-18:11 — fuerza hash de Vite distinto para invalidar cache de Vercel CDN
+  if (typeof window !== 'undefined' && import.meta.env.PROD) {
+    // eslint-disable-next-line no-console
+    console.info('[Bridge] v1.0.0-worker-ok');
+  }
+
   const step = useUIStore((s) => s.currentStep);
   const setStep = useUIStore((s) => s.setStep);
   const brief = useProjectStore((s) => s.brief);
