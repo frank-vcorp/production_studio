@@ -1,7 +1,7 @@
 /**
  * Contratos de request/response para el proxy Cloudflare Worker.
  * El cliente NUNCA conoce GEMINI_API_KEY; siempre pasa por /api/gemini/*.
- * Spec: ARCH-20260703-02 + SPEC-S1-FOUNDATION §1.3.
+ * Spec: ARCH-20260703-02 + ARCH-20260704-11 (Veo 3.1) + SPEC-S1-FOUNDATION §1.3.
  */
 
 export type ContentPart =
@@ -46,42 +46,55 @@ export interface GenerateContentResponse {
   modelVersion?: string;
 }
 
+/**
+ * Veo 3.1 — predictLongRunning body shape (ARCH-20260704-11).
+ * El cliente envía YA el shape Gemini y el Worker hace forward crudo.
+ * Spec: https://ai.google.dev/gemini-api/docs/video#veo-3-1
+ */
 export interface GenerateVideoRequest {
-  /** I2V: keyframe inicial como base64 */
-  input_image: string;
-  /** MIME del input_image */
-  input_image_mimeType: string;
-  /** Prompt aprobado por usuario */
-  prompt: string;
-  /** Modelo por defecto 'veo-3.1' */
-  model?: string;
-  /** Duración en segundos (3-8) */
-  durationSeconds: number;
-  fps?: 24 | 30;
-  aspectRatio?: '9:16' | '1:1' | '4:5' | '16:9';
-  /** Para generación con imagen IN + imagen OUT (futuro) */
-  last_frame?: { inlineData: { mimeType: string; data: string } };
-  /** Persona negativa (safety) */
-  personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all';
+  /** Una sola instance con prompt + (opcional) imagen de referencia I2V. */
+  instances: Array<{
+    prompt: string;
+    /** Imagen de referencia opcional (keyframe IN como base64). */
+    image?: { data: string; mimeType: string };
+  }>;
+  /** Parámetros del modelo. */
+  parameters: {
+    /** 3-8 segundos. */
+    durationSeconds: number;
+    aspectRatio?: '9:16' | '1:1' | '4:5' | '16:9';
+    /** Default 'dont_allow' para evitar generación de personas reales. */
+    personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all';
+    /** Negativa (no implementado en cliente v1). */
+    negativePrompt?: string;
+  };
 }
 
 export interface VideoOperation {
+  /** `operations/{id}` retornado por predictLongRunning. */
   name: string;
+  /** true cuando la operación terminó. */
   done: boolean;
-  /** Populated when done=true */
+  /** Populated when done=true. Forma real de Veo 3.1. */
   response?: {
-    videos: Array<{
-      uri?: string;
-      /** Base64 inline (alternativo a uri) */
-      inlineData?: { mimeType: string; data: string };
-      duration?: string;     // "5.0s"
-    }>;
-    generatedVideos?: Array<{
-      video?: { uri?: string; inlineData?: { mimeType: string; data: string } };
-    }>;
+    /** Wrapper estándar de la API Gemini para video. */
+    generateVideoResponse?: {
+      videos: Array<{
+        /** URI firmada para descarga (requiere API key en query). */
+        uri?: string;
+        /** MIME del video, ej. 'video/mp4'. */
+        mimeType?: string;
+      }>;
+    };
   };
   error?: { code: number; message: string };
-  metadata?: Record<string, unknown>;
+  /** Metadata del progreso mientras done=false. */
+  metadata?: {
+    /** Porcentaje 0-100. */
+    progressPercent?: number;
+    /** Estado legible: 'PROCESSING' | 'SUCCEEDED' | 'FAILED'. */
+    state?: string;
+  };
 }
 
 export interface GenerateImageRequest {

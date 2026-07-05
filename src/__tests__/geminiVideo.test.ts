@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// jsdom 25 expone URL pero NO URL.createObjectURL/revokeObjectURL (typeof undefined).
+// Polyfill mínimo para tests de video (idéntico patrón a jobQueue.test.ts).
+if (typeof URL.createObjectURL === 'undefined') {
+  let nextId = 0;
+  (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = (b: Blob) =>
+    `blob:test://${++nextId}#${(b as Blob).size ?? 0}`;
+  (URL as unknown as { revokeObjectURL: (u: string) => void }).revokeObjectURL = () => undefined;
+}
+
 // Mock del cliente HTTP completo. Así evitamos que generateTransitionWithRetry
 // llame al fetch real cuando reintenta. El mock por spy sobre generateTransition
 // no funciona porque ESM conserva la referencia interna; mockear el cliente es
 // la única forma robusta en este proyecto (Vitest 2.1 + Vite 5 ESM).
 let impl: ((args: unknown) => Promise<unknown>) | null = null;
+let downloadImpl: ((uri: string) => Promise<unknown>) | null = null;
 
 vi.mock('@/services/gemini/client', async () => {
   const actual = await vi.importActual<typeof import('@/services/gemini/client')>(
@@ -22,11 +32,11 @@ vi.mock('@/services/gemini/client', async () => {
           name: 'operations/op_mock',
           done: true,
           response: {
-            videos: [
-              {
-                inlineData: { mimeType: 'video/mp4', data: 'aGVsbG8=' },
-              },
-            ],
+            generateVideoResponse: {
+              videos: [
+                { uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc:download?alt=media' },
+              ],
+            },
           },
         };
       }),
@@ -34,19 +44,24 @@ vi.mock('@/services/gemini/client', async () => {
         name: 'operations/op_mock',
         done: true,
         response: {
-          videos: [
-            {
-              inlineData: { mimeType: 'video/mp4', data: 'aGVsbG8=' },
-            },
-          ],
+          generateVideoResponse: {
+            videos: [
+              { uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc:download?alt=media' },
+            ],
+          },
         },
       })),
+      downloadVideo: vi.fn(async (uri: string) => {
+        if (downloadImpl) return downloadImpl(uri);
+        return new Blob(['mock-video-bytes'], { type: 'video/mp4' });
+      }),
     },
   };
 });
 
-const { classifyVeoError, generateTransitionWithRetry, RETRY_DELAYS_MS } =
+const { classifyVeoError, generateTransitionWithRetry, RETRY_DELAYS_MS, startVideoGeneration, extractVideoFromOperation } =
   await import('@/services/gemini/video');
+import { geminiClient } from '@/services/gemini/client';
 import type { KeyframeTransition } from '@/types/transition';
 import type { Keyframe } from '@/types/keyframe';
 
@@ -89,10 +104,12 @@ const kfTo: Keyframe = {
 
 beforeEach(() => {
   impl = null;
+  downloadImpl = null;
 });
 
 afterEach(() => {
   impl = null;
+  downloadImpl = null;
 });
 
 describe('gemini/video retry + classify', () => {
@@ -165,5 +182,111 @@ describe('gemini/video retry + classify', () => {
       code: 'safety',
     });
     expect(calls).toBe(1); // safety → throw inmediato, no 5 intentos
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// ARCH-20260704-11: shape Gemini (instances[] + parameters) + descarga URI
+// ────────────────────────────────────────────────────────────────────────
+
+describe('gemini/video Veo 3.1 body shape + URI download', () => {
+  it('startVideoGeneration envía body con instances[0].prompt e instances[0].image.data (NO input_image en root)', async () => {
+    const spy = vi.mocked(geminiClient.generateVideo);
+    spy.mockClear();
+    impl = async () => ({
+      name: 'operations/op_xyz',
+      done: false,
+    });
+
+    const op = await startVideoGeneration({ transition, fromKeyframe: kfFrom, toKeyframe: kfTo });
+    expect(op.name).toBe('operations/op_xyz');
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const sent = spy.mock.calls[0][0] as unknown as Record<string, unknown>;
+
+    // NO debe haber campos legacy en root
+    expect(sent).not.toHaveProperty('input_image');
+    expect(sent).not.toHaveProperty('model');
+    expect(sent).not.toHaveProperty('fps');
+
+    // Shape correcto Gemini Veo 3.1
+    expect(sent).toHaveProperty('instances');
+    expect(sent).toHaveProperty('parameters');
+    const instances = sent.instances as Array<{ prompt: string; image?: { data: string; mimeType: string } }>;
+    expect(instances).toHaveLength(1);
+    expect(instances[0].prompt).toBe('test approved');
+    expect(instances[0].image).toBeDefined();
+    expect(instances[0].image?.data).toBe('iVBORw0KGgo=');
+    expect(instances[0].image?.mimeType).toBe('image/png');
+
+    const params = sent.parameters as { durationSeconds: number; aspectRatio: string; personGeneration: string };
+    expect(params.durationSeconds).toBe(4);
+    expect(params.aspectRatio).toBe('9:16');
+    expect(params.personGeneration).toBe('dont_allow');
+  });
+
+  it('extractVideoFromOperation con respuesta Veo 3.1 → llama downloadVideo con la URI correcta', async () => {
+    const fakeUri = 'https://generativelanguage.googleapis.com/v1beta/files/xyz:download?alt=media&key=abc';
+    const downloadSpy = vi.mocked(geminiClient.downloadVideo);
+    downloadSpy.mockClear();
+
+    const op = {
+      name: 'operations/op_done',
+      done: true,
+      response: {
+        generateVideoResponse: {
+          videos: [{ uri: fakeUri, mimeType: 'video/mp4' }],
+        },
+      },
+    };
+
+    const { blob, url } = await extractVideoFromOperation(op);
+
+    expect(downloadSpy).toHaveBeenCalledWith(fakeUri);
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBeGreaterThan(0);
+    expect(url.startsWith('blob:')).toBe(true);
+    URL.revokeObjectURL(url);
+  });
+
+  it('extractVideoFromOperation lanza error claro en español si no hay videos', async () => {
+    const op = {
+      name: 'operations/op_empty',
+      done: true,
+      response: { generateVideoResponse: { videos: [] } },
+    };
+    await expect(extractVideoFromOperation(op)).rejects.toThrow(/no devolvió ningún video/);
+  });
+
+  it('extractVideoFromOperation lanza error si el video no trae URI', async () => {
+    const op = {
+      name: 'operations/op_no_uri',
+      done: true,
+      response: { generateVideoResponse: { videos: [{ mimeType: 'video/mp4' }] } },
+    };
+    await expect(extractVideoFromOperation(op)).rejects.toThrow(/sin URI firmada/);
+  });
+
+  it('extractVideoFromOperation lanza 409 si la operación aún no terminó', async () => {
+    const op = { name: 'operations/op_pending', done: false };
+    await expect(extractVideoFromOperation(op)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('generateTransition end-to-end: mockea start + poll + download con URI firmada', async () => {
+    const { generateTransition } = await import('@/services/gemini/video');
+    const fakeUri = 'https://generativelanguage.googleapis.com/v1beta/files/end:download?alt=media';
+    impl = async () => ({ name: 'operations/op_e2e', done: false });
+    // Re-mock pollOperation para este test
+    vi.mocked(geminiClient.pollOperation).mockResolvedValueOnce({
+      name: 'operations/op_e2e',
+      done: true,
+      response: { generateVideoResponse: { videos: [{ uri: fakeUri }] } },
+    });
+
+    const result = await generateTransition({ transition, fromKeyframe: kfFrom, toKeyframe: kfTo });
+    expect(result.operationId).toBe('operations/op_e2e');
+    expect(result.blob).toBeInstanceOf(Blob);
+    expect(result.url.startsWith('blob:')).toBe(true);
+    URL.revokeObjectURL(result.url);
   });
 });

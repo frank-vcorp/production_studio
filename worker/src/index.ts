@@ -1,7 +1,7 @@
 /**
  * Bridge Gemini Proxy — Cloudflare Worker
  * Inyecta GEMINI_API_KEY server-side, CORS, rate limit básico.
- * Spec: ARCH-20260703-02 — versión simplificada S1 (sin hono para evitar deps).
+ * Spec: ARCH-20260703-02 + ARCH-20260704-11 (Veo 3.1 predictLongRunning + download URI).
  */
 
 interface Env {
@@ -103,6 +103,8 @@ function parseSafetyFlags(body: string): string | null {
 async function forwardToGemini(env: Env, path: string, body: unknown, origin: string | null, requestId: string): Promise<Response> {
   const url = `https://generativelanguage.googleapis.com/v1beta${path}?key=${env.GEMINI_API_KEY}`;
   const start = performance.now();
+  // ARCH-20260704-11: debug logging con bodyKeys (sin base64 de la imagen).
+  const bodyKeys = body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : [];
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -128,12 +130,12 @@ async function forwardToGemini(env: Env, path: string, body: unknown, origin: st
         console.log(JSON.stringify({ requestId, path, safetyFlags }));
       }
     }
-    console.log(JSON.stringify({ requestId, path, status: res.status, latencyMs, origin }));
+    console.log(JSON.stringify({ requestId, route: path, target: url.split('?')[0], bodyKeys, status: res.status, latencyMs, origin }));
     const response = new Response(text, { status: res.status, headers: responseHeaders });
     return withCorsHeaders(response, origin);
   } catch (err) {
     const latencyMs = Math.round(performance.now() - start);
-    console.error(JSON.stringify({ requestId, path, error: (err as Error).message, latencyMs }));
+    console.error(JSON.stringify({ requestId, route: path, target: url.split('?')[0], bodyKeys, error: (err as Error).message, latencyMs }));
     return withCorsHeaders(jsonResponse({ error: 'Proxy upstream failed', detail: (err as Error).message }, 502), origin);
   }
 }
@@ -232,7 +234,8 @@ export default {
       case '/api/gemini/generateContent':
         return forwardToGemini(env, '/models/gemini-2.5-pro:generateContent', body, origin, requestId);
       case '/api/gemini/generateVideo':
-        return forwardToGemini(env, '/models/veo-3.1:generateVideo', body, origin, requestId);
+        // ARCH-20260704-11: Veo 3.1 usa :predictLongRunning (no :generateVideo) con modelo preview.
+        return forwardToGemini(env, '/models/veo-3.1-generate-preview:predictLongRunning', body, origin, requestId);
       case '/api/gemini/generateImage':
         return forwardToGemini(env, '/models/imagen-3.0-generate-002:predict', body, origin, requestId);
       case '/api/gemini/analyzeImage':
@@ -241,6 +244,51 @@ export default {
         return forwardToGemini(env, '/models/gemini-2.5-flash:generateContent', body, origin, requestId);
       case '/api/gemini/synthesizeSpeech':
         return forwardToGemini(env, '/models/gemini-2.5-flash-preview-tts:generateContent', body, origin, requestId);
+      // ARCH-20260704-11: Descarga binaria de video desde URI firmada de Veo.
+      // El cliente pasa la URI firmada y el Worker hace fetch con la API key implícita.
+      case '/api/gemini/downloadVideo': {
+        if (request.method !== 'GET') {
+          return withCorsHeaders(jsonResponse({ error: 'Method not allowed' }, 405), origin);
+        }
+        const targetUrl = url.searchParams.get('url');
+        if (!targetUrl) {
+          return withCorsHeaders(jsonResponse({ error: 'Missing url param' }, 400), origin);
+        }
+        // SSRF guard: solo permitir host oficial de Gemini.
+        if (!targetUrl.startsWith('https://generativelanguage.googleapis.com/')) {
+          return withCorsHeaders(
+            jsonResponse({ error: 'Invalid url host', detail: 'Solo se permiten URIs firmadas de generativelanguage.googleapis.com' }, 400),
+            origin,
+          );
+        }
+        try {
+          const res = await fetch(targetUrl);
+          if (!res.ok) {
+            return withCorsHeaders(
+              jsonResponse({ error: 'Veo download failed', status: res.status }, res.status),
+              origin,
+            );
+          }
+          const blob = await res.blob();
+          console.log(JSON.stringify({ requestId, route: '/api/gemini/downloadVideo', targetHost: 'googleapis.com', bytes: blob.size, status: res.status }));
+          return withCorsHeaders(
+            new Response(blob, {
+              status: 200,
+              headers: {
+                'Content-Type': res.headers.get('Content-Type') ?? 'video/mp4',
+                'Content-Length': blob.size.toString(),
+                'X-Request-ID': requestId,
+              },
+            }),
+            origin,
+          );
+        } catch (err) {
+          return withCorsHeaders(
+            jsonResponse({ error: 'Veo download error', detail: (err as Error).message }, 502),
+            origin,
+          );
+        }
+      }
       default: {
         const match = url.pathname.match(/^\/api\/gemini\/operations\/(.+)$/);
         if (match && request.method === 'GET') {

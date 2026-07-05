@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { cn } from '@/utils/cn';
 import { useProjectStore } from '@/stores/projectStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -95,6 +95,26 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
   const canGenerateClip = outgoing && outgoing.status === 'pending';
   const canEditGranular = outgoing && (outgoing.status === 'done' || outgoing.status === 'approved' || outgoing.status === 'failed');
 
+  // ARCH-20260704-11: leer estado de generación desde el job del store.
+  const generationJobs = useProjectStore((s) => s.generationJobs);
+  const outgoingJob = outgoing ? generationJobs.get(outgoing.id) : undefined;
+  const isGenerating = outgoingJob?.state === 'generating';
+
+  // ARCH-20260704-11: ETA dinámico (90 s base, clamp [10, 180]) mostrado en el overlay.
+  const [remainingSeconds, setRemainingSeconds] = useState(90);
+  useEffect(() => {
+    if (!isGenerating || !outgoing) return;
+    const job = generationJobs.get(outgoing.id);
+    if (!job?.startedAt) return;
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - job.startedAt!) / 1000);
+      setRemainingSeconds(Math.max(10, Math.min(180, 90 - elapsed)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isGenerating, outgoing, generationJobs]);
+
   const handleGenerateClip = useCallback(() => {
     if (!outgoing) {
       addToast({ kind: 'warning', message: 'No hay transición saliente todavía.' });
@@ -176,10 +196,28 @@ export const KeyframeSlotView = memo(function KeyframeSlotView({ role, label, de
           <button
             type="button"
             onClick={onUpload}
-            className="absolute top-2 right-2 bg-slate-900/85 backdrop-blur border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800"
+            disabled={isGenerating}
+            aria-disabled={isGenerating}
+            className={cn(
+              'absolute top-2 right-2 bg-slate-900/85 backdrop-blur border border-slate-700 rounded-lg px-2 py-1 text-[10px] text-slate-200 hover:bg-slate-800',
+              isGenerating && 'opacity-40 cursor-not-allowed hover:bg-slate-900/85',
+            )}
           >
             Reemplazar
           </button>
+        )}
+        {/* ARCH-20260704-11: overlay con backdrop-blur mientras Veo 3.1 genera. */}
+        {isGenerating && (
+          <div
+            role="status"
+            aria-live="polite"
+            data-testid="veo-generating-overlay"
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-10"
+          >
+            <div className="loader-ring" style={{ width: 48, height: 48 }} aria-hidden />
+            <p className="text-sm font-bold text-sky-300">Generando clip con Veo 3.1…</p>
+            <p className="text-xs text-slate-400">~{remainingSeconds}s restantes</p>
+          </div>
         )}
       </div>
 

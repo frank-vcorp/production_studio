@@ -151,6 +151,36 @@ export class GeminiProxyClient {
   }
 
   /**
+   * Descarga el video binario desde la URI firmada de Veo 3.1 a través del proxy.
+   * El Worker hace el fetch server-side para mantener la API key fuera del cliente.
+   * Spec: ARCH-20260704-11.
+   */
+  async downloadVideo(uri: string): Promise<Blob> {
+    const encodedUri = encodeURIComponent(uri);
+    const url = `${this.baseUrl}/api/gemini/downloadVideo?url=${encodedUri}`;
+    const controller = new AbortController();
+    // 5 min cap: el video MP4 puede pesar varios MB y la red del cliente puede ser lenta.
+    const timeout = setTimeout(() => controller.abort(), 5 * 60_000);
+    try {
+      const res = await fetch(url, { method: 'GET', signal: controller.signal });
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const message = String(errBody.error ?? `HTTP ${res.status}`);
+        throw new GeminiProxyError(res.status, message, errBody);
+      }
+      return await res.blob();
+    } catch (err) {
+      if (err instanceof GeminiProxyError) throw err;
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new GeminiProxyError(408, 'Download timeout', { timeoutMs: 5 * 60_000 });
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /**
    * Poll de una operation name. La URL completa viene como `operations/...` o
    * ya con prefijo 'operations/...'. Si llega absoluta (e.g. 'projects/...'),
    * el proxy la trata como path.

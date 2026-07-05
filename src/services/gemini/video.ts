@@ -1,6 +1,7 @@
 /**
  * video — Veo 3.1 I2V generation + polling + retry robusto.
- * Spec: SPEC-S1-FOUNDATION §1.13 + ARCH-20260703-04 §5 Paso 5 + SPEC-S2-ROBUSTNESS §Tarea 2.3.
+ * Spec: SPEC-S1-FOUNDATION §1.13 + ARCH-20260703-04 §5 Paso 5 + SPEC-S2-ROBUSTNESS §Tarea 2.3
+ *      + ARCH-20260704-11 (predictLongRunning + instances[] body + descarga URI).
  */
 
 import { geminiClient, GeminiProxyError } from './client';
@@ -15,17 +16,14 @@ interface GenerateOpts {
   toKeyframe: Keyframe;
 }
 
-function base64ToBlob(base64: string, mimeType: string): Blob {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mimeType });
-}
-
 const POLL_INTERVAL_MS = 10_000;
 const POLL_TIMEOUT_MS = 5 * 60_000; // 5 min hard cap
 
-/** Lanza una transición I2V y devuelve la operación para polling */
+/**
+ * Lanza una transición I2V a Veo 3.1 y devuelve la operación para polling.
+ * Body shape: `{instances: [{prompt, image}], parameters: {durationSeconds, aspectRatio, personGeneration}}`.
+ * Spec: ARCH-20260704-11.
+ */
 export async function startVideoGeneration(opts: GenerateOpts): Promise<VideoOperation> {
   const { transition, fromKeyframe } = opts;
   if (transition.status !== 'approved') {
@@ -42,15 +40,22 @@ export async function startVideoGeneration(opts: GenerateOpts): Promise<VideoOpe
   if (!prompt) {
     throw new GeminiProxyError(400, 'Transición sin prompt', { id: transition.id });
   }
+
   const op = await geminiClient.generateVideo({
-    input_image: fromKeyframe.base64,
-    input_image_mimeType: fromKeyframe.mimeType ?? 'image/png',
-    prompt,
-    durationSeconds: Math.max(3, Math.min(8, transition.duration)),
-    fps: 24,
-    aspectRatio: '9:16',
-    model: 'veo-3.1',
-    personGeneration: 'dont_allow',
+    instances: [
+      {
+        prompt,
+        image: {
+          data: fromKeyframe.base64,
+          mimeType: fromKeyframe.mimeType ?? 'image/png',
+        },
+      },
+    ],
+    parameters: {
+      durationSeconds: Math.max(3, Math.min(8, transition.duration)),
+      aspectRatio: '9:16',
+      personGeneration: 'dont_allow',
+    },
   });
   return op;
 }
@@ -69,33 +74,29 @@ export async function pollVideoOperation(name: string): Promise<VideoOperation> 
   throw new GeminiProxyError(504, 'Tiempo de espera agotado mientras Veo generaba el clip', { name, last: lastOp });
 }
 
-/** Descarga el video resultado y devuelve Blob + URL */
-export function extractVideoFromOperation(op: VideoOperation): { blob: Blob; url: string } {
+/**
+ * Descarga el video MP4 desde la URI firmada y devuelve Blob + Object URL.
+ * Versión ASYNC (antes era sync) porque Veo 3.1 ya NO devuelve inlineData.
+ * Spec: ARCH-20260704-11.
+ */
+export async function extractVideoFromOperation(op: VideoOperation): Promise<{ blob: Blob; url: string }> {
   if (!op.done) {
     throw new GeminiProxyError(409, 'La operación de Veo aún no ha terminado', {});
   }
-  type InlinePair = { uri?: string; inlineData?: { mimeType: string; data: string } };
-  const videos: InlinePair[] =
-    op.response?.videos ??
-    ((op.response?.generatedVideos ?? [])
-      .map((g): InlinePair | null => (g.video?.uri ? { uri: g.video.uri, inlineData: g.video.inlineData } : null))
-      .filter((v): v is InlinePair => v !== null)) ??
-    [];
+  const videos = op.response?.generateVideoResponse?.videos ?? [];
   const v = videos[0];
-  if (!v) throw new GeminiProxyError(500, 'Veo no devolvió ningún video en la respuesta', { op });
-
-  if (v.inlineData) {
-    const blob = base64ToBlob(v.inlineData.data, v.inlineData.mimeType ?? 'video/mp4');
-    return { blob, url: URL.createObjectURL(blob) };
+  if (!v) {
+    throw new GeminiProxyError(
+      500,
+      'Veo no devolvió ningún video en la respuesta (response.generateVideoResponse.videos vacío)',
+      { op },
+    );
   }
-  if (v.uri) {
-    // Descarga por URL (asume accesible server-side, no público)
-    // En S1 + proxy: la URL no es pública; pedimos al proxy que la descargue.
-    // Política: si no inline, rechazamos para que el cliente sepa que el proxy debe
-    // entregar el binario por una ruta /api/gemini/downloadVideo.
-    throw new GeminiProxyError(501, 'Videos solo con URL no soportados en esta versión; se requieren datos embebidos', { uri: v.uri });
+  if (!v.uri) {
+    throw new GeminiProxyError(500, 'Veo devolvió el video sin URI firmada', { video: v });
   }
-  throw new GeminiProxyError(500, 'El video de Veo no contiene datos embebidos ni URL', {});
+  const blob = await geminiClient.downloadVideo(v.uri);
+  return { blob, url: URL.createObjectURL(blob) };
 }
 
 /** Flujo completo: start + poll + blob */
@@ -103,7 +104,7 @@ export async function generateTransition(opts: GenerateOpts): Promise<{ blob: Bl
   const op = await startVideoGeneration(opts);
   const opName = op.name;
   const completed = await pollVideoOperation(opName);
-  const { blob, url } = extractVideoFromOperation(completed);
+  const { blob, url } = await extractVideoFromOperation(completed);
   return { blob, url, operationId: opName };
 }
 
