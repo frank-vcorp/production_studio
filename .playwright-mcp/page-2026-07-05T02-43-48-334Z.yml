@@ -1,0 +1,167 @@
+- generic [ref=e3]:
+  - navigation "Accesibilidad" [ref=e4]:
+    - link "Saltar al contenido principal" [ref=e5] [cursor=pointer]:
+      - /url: "#main-content"
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Bridge Creative Engine
+        - heading "S5" [level=1] [ref=e12]:
+          - generic [ref=e13]: S5
+      - generic [ref=e14]:
+        - 'generic "Última verificación: 20:43:07" [ref=e110]': Conectado via Proxy
+        - button "Empezar un nuevo proyecto desde cero" [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: Nuevo proyecto
+        - button "Settings" [ref=e19] [cursor=pointer]
+  - navigation "Tabs principales" [ref=e20]:
+    - tablist "Secciones de la app" [ref=e21]:
+      - tab "Brief" [ref=e22] [cursor=pointer]
+      - tab "Storyboard" [active] [selected] [ref=e23] [cursor=pointer]
+      - tab "Export" [ref=e24] [cursor=pointer]
+  - main [ref=e25]:
+    - generic [ref=e111]:
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - heading "Keyframe Storyboard" [level=2] [ref=e115]: Keyframe Storyboard
+          - paragraph [ref=e116]: 5 categorías AIDA · Sube fotos reales o genera OUTs automáticos con Imagen 3.
+        - generic [ref=e117]: 📁 Generales = fotos del negocio · 🎬 AIDA = IN real + OUT auto
+      - generic [ref=e118]:
+        - region "Generales del Negocio" [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e122]: 📁
+              - generic [ref=e123]:
+                - heading "Generales del Negocio" [level=3] [ref=e124]
+                - paragraph [ref=e125]: Logo y fotos del lugar/equipo. No se usan directamente en AIDA pero dan identidad.
+            - generic [ref=e126]: 2 slots
+          - generic [ref=e127]:
+            - 'button "Keyframe Logo: empty" [ref=e128] [cursor=pointer]':
+              - generic [ref=e129]:
+                - generic [ref=e130]:
+                  - heading "Logo" [level=3] [ref=e131]: Logo
+                  - paragraph [ref=e132]: PNG/SVG para cortinilla inicial
+                - generic [ref=e133]: Vacío
+              - button "Subir foto logo" [ref=e135]:
+                - generic [ref=e136]: Subir foto logo
+              - button "Generar clip" [ref=e138]
+            - 'button "Keyframe Taller: empty" [ref=e139] [cursor=pointer]':
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - heading "Tu Espacio" [level=3] [ref=e142]: Tu Espacio
+                  - paragraph [ref=e143]: "Foto real: tu taller, oficina, equipo"
+                - generic [ref=e144]: Vacío
+              - button "Subir foto tu espacio" [ref=e146]:
+                - generic [ref=e147]: Subir foto tu espacio
+              - button "Generar clip" [ref=e149]
+        - region "AIDA · Atención" [ref=e150]:
+          - generic [ref=e151]:
+            - generic [ref=e152]:
+              - generic [ref=e153]: 🎬
+              - generic [ref=e154]:
+                - heading "AIDA · Atención" [level=3] [ref=e155]
+                - paragraph [ref=e156]: Gancho visual (primeros 5s). El problema que el cliente siente.
+            - generic [ref=e157]: 2 slots
+          - generic [ref=e158]:
+            - 'button "Keyframe Problema: empty" [ref=e159] [cursor=pointer]':
+              - generic [ref=e160]:
+                - generic [ref=e161]:
+                  - heading "IN — Estado actual" [level=3] [ref=e162]: IN — Estado actual
+                  - paragraph [ref=e163]: Foto del "antes" o problema que resuelves
+                - generic [ref=e164]: Vacío
+              - button "Subir foto in — estado actual" [ref=e166]:
+                - generic [ref=e167]: Subir foto in — estado actual
+              - button "Generar clip" [ref=e169]
+            - 'button "Keyframe atencion_out: empty" [ref=e170] [cursor=pointer]':
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - heading "OUT — Tu marca aparece Auto" [level=3] [ref=e173]:
+                    - text: OUT — Tu marca aparece
+                    - generic [ref=e174]: Auto
+                  - paragraph [ref=e175]: Auto-generada con Imagen 3
+                - generic [ref=e176]: Vacío
+              - button "Subir foto out — tu marca aparece" [ref=e178]:
+                - generic [ref=e179]: Subir foto out — tu marca aparece
+        - region "AIDA · Interés" [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]:
+              - generic [ref=e183]: 🎯
+              - generic [ref=e184]:
+                - heading "AIDA · Interés" [level=3] [ref=e185]
+                - paragraph [ref=e186]: Autoridad y credibilidad (5-15s). Tu espacio, certificaciones, equipo.
+            - generic [ref=e187]: 2 slots
+          - generic [ref=e188]:
+            - 'button "Keyframe Taller: empty" [ref=e189] [cursor=pointer]':
+              - generic [ref=e190]:
+                - generic [ref=e191]:
+                  - heading "IN — Tu taller/equipo" [level=3] [ref=e192]: IN — Tu taller/equipo
+                  - paragraph [ref=e193]: "Foto real: espacio, herramientas, equipo"
+                - generic [ref=e194]: Vacío
+              - button "Subir foto in — tu taller/equipo" [ref=e196]:
+                - generic [ref=e197]: Subir foto in — tu taller/equipo
+              - button "Generar clip" [ref=e199]
+            - 'button "Keyframe interes_out: empty" [ref=e200] [cursor=pointer]':
+              - generic [ref=e201]:
+                - generic [ref=e202]:
+                  - heading "OUT — Detalle de autoridad Auto" [level=3] [ref=e203]:
+                    - text: OUT — Detalle de autoridad
+                    - generic [ref=e204]: Auto
+                  - paragraph [ref=e205]: Auto-generada con Imagen 3
+                - generic [ref=e206]: Vacío
+              - button "Subir foto out — detalle de autoridad" [ref=e208]:
+                - generic [ref=e209]: Subir foto out — detalle de autoridad
+        - region "AIDA · Deseo" [ref=e210]:
+          - generic [ref=e211]:
+            - generic [ref=e212]:
+              - generic [ref=e213]: ✨
+              - generic [ref=e214]:
+                - heading "AIDA · Deseo" [level=3] [ref=e215]
+                - paragraph [ref=e216]: Transformación (15-25s). El resultado final, antes/después, métrica visible.
+            - generic [ref=e217]: 2 slots
+          - generic [ref=e218]:
+            - 'button "Keyframe Solución: empty" [ref=e219] [cursor=pointer]':
+              - generic [ref=e220]:
+                - generic [ref=e221]:
+                  - heading "IN — Solución/resultado" [level=3] [ref=e222]: IN — Solución/resultado
+                  - paragraph [ref=e223]: "Foto real: el \"después\" de tu servicio"
+                - generic [ref=e224]: Vacío
+              - button "Subir foto in — solución/resultado" [ref=e226]:
+                - generic [ref=e227]: Subir foto in — solución/resultado
+              - button "Generar clip" [ref=e229]
+            - 'button "Keyframe deseo_out: empty" [ref=e230] [cursor=pointer]':
+              - generic [ref=e231]:
+                - generic [ref=e232]:
+                  - heading "OUT — Métrica/anuncio Auto" [level=3] [ref=e233]:
+                    - text: OUT — Métrica/anuncio
+                    - generic [ref=e234]: Auto
+                  - paragraph [ref=e235]: Auto-generada con Imagen 3
+                - generic [ref=e236]: Vacío
+              - button "Subir foto out — métrica/anuncio" [ref=e238]:
+                - generic [ref=e239]: Subir foto out — métrica/anuncio
+        - region "AIDA · CTA (cierre)" [ref=e240]:
+          - generic [ref=e241]:
+            - generic [ref=e242]:
+              - generic [ref=e243]: 📲
+              - generic [ref=e244]:
+                - heading "AIDA · CTA (cierre)" [level=3] [ref=e245]
+                - paragraph [ref=e246]: Llamada a la acción. Tarjeta de contacto + fachada del negocio.
+            - generic [ref=e247]: 2 slots
+          - generic [ref=e248]:
+            - 'button "Keyframe CTA Base: empty" [ref=e249] [cursor=pointer]':
+              - generic [ref=e250]:
+                - generic [ref=e251]:
+                  - heading "CTA Base" [level=3] [ref=e252]: CTA Base
+                  - paragraph [ref=e253]: Foto fondo de la tarjeta final (opcional)
+                - generic [ref=e254]: Vacío
+              - button "Subir foto cta base" [ref=e256]:
+                - generic [ref=e257]: Subir foto cta base
+              - button "Generar clip" [ref=e259]
+            - 'button "Keyframe CTA Final: empty" [ref=e260] [cursor=pointer]':
+              - generic [ref=e261]:
+                - generic [ref=e262]:
+                  - heading "CTA Final" [level=3] [ref=e263]: CTA Final
+                  - paragraph [ref=e264]: "Foto real: recepción, fachada, contacto"
+                - generic [ref=e265]: Vacío
+              - button "Subir foto cta final" [ref=e267]:
+                - generic [ref=e268]: Subir foto cta final
+  - contentinfo [ref=e108]:
+    - generic [ref=e109]: Bridge Creative Engine · S5 Wizard + Accesibilidad · Standalone · Gemini-only · 2026
