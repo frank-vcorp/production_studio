@@ -1,6 +1,23 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useProjectStore, selectApprovedTransitions } from '@/stores/projectStore';
 import type { MasterBrief } from '@/types/brief';
+
+// ARCH-20260704-10: projectStore.generateTransition ahora invoca
+// generateTransitionWithRetry de services/gemini/video. Mockeamos esa
+// función para no hacer HTTP real en tests.
+const mockedRetry = vi.fn();
+vi.mock('@/services/gemini/video', async () => {
+  const actual = await vi.importActual<typeof import('@/services/gemini/video')>(
+    '@/services/gemini/video',
+  );
+  return {
+    ...actual,
+    generateTransitionWithRetry: (...args: unknown[]) => mockedRetry(...args),
+  };
+});
+
+import type { KeyframeTransition } from '@/types/transition';
+import type { Keyframe } from '@/types/keyframe';
 
 const sampleBrief: MasterBrief = {
   id: 'brief_test',
@@ -255,5 +272,170 @@ describe('projectStore', () => {
     const persisted = partializeFn!(state) as Record<string, unknown>;
     expect(persisted.analysisJobs).toBeUndefined();
     expect(persisted.generationJobs).toBeUndefined();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// ARCH-20260704-10: tests del nuevo generateTransition real (enrola job Veo).
+// Suite separada para aislar el mock de services/gemini/video (vi.mock tiene
+// efecto global por archivo).
+// ────────────────────────────────────────────────────────────────────────────
+
+function setupApprovedTransitionWithKeyframes(transitionId: string) {
+  // Sembrar keyframes con blob para que generateTransitionWithRetry
+  // reciba data válida.
+  const kfFromBlob = new Blob(['kf-from-bytes'], { type: 'image/png' });
+  const kfToBlob = new Blob(['kf-to-bytes'], { type: 'image/png' });
+  const kfFrom: Keyframe = {
+    id: 'kf_atencion_in',
+    role: 'atencion_in',
+    label: 'IN',
+    description: 'Origen',
+    source: 'user_upload',
+    timestamp: 0,
+    status: 'approved',
+    blob: kfFromBlob,
+    base64: 'data:image/png;base64,aGVsbG8=',
+    mimeType: 'image/png',
+  };
+  const kfTo: Keyframe = {
+    id: 'kf_interes_in',
+    role: 'interes_in',
+    label: 'OUT',
+    description: 'Destino',
+    source: 'user_upload',
+    timestamp: 0,
+    status: 'approved',
+    blob: kfToBlob,
+    base64: 'data:image/png;base64,d29ybGQ=',
+    mimeType: 'image/png',
+  };
+  const trans: KeyframeTransition = {
+    id: transitionId,
+    fromKeyframe: 'kf_atencion_in',
+    toKeyframe: 'kf_interes_in',
+    nodeKey: 'atencion',
+    duration: 4,
+    prompt: 'p',
+    cameraSpec: { movement: 'dolly', framing: 'medium', angle: 'eye level', speed: 'medium' },
+    status: 'approved',
+    promptFinal: 'p',
+    promptHistory: [],
+  };
+  const kfMap = new Map<string, Keyframe>(useProjectStore.getState().keyframes);
+  kfMap.set(kfFrom.id, kfFrom);
+  kfMap.set(kfTo.id, kfTo);
+  const trMap = new Map<string, KeyframeTransition>(useProjectStore.getState().transitions);
+  trMap.set(trans.id, trans);
+  useProjectStore.setState({ keyframes: kfMap, transitions: trMap });
+}
+
+describe('projectStore.generateTransition — ARCH-20260704-10 (job real Veo)', () => {
+  beforeEach(() => {
+    useProjectStore.getState().resetProject();
+    mockedRetry.mockReset();
+  });
+
+  it('enrola generateTransitionWithRetry y setea status=done en éxito', async () => {
+    setupApprovedTransitionWithKeyframes('trans_atencion');
+
+    const mockBlob = new Blob(['mock-video'], { type: 'video/mp4' });
+    const mockUrl = 'blob:http://localhost/mock-video';
+    mockedRetry.mockResolvedValueOnce({
+      blob: mockBlob,
+      url: mockUrl,
+      operationId: 'op_test_123',
+      attempts: 1,
+      totalLatencyMs: 100,
+    });
+
+    await useProjectStore.getState().generateTransition('trans_atencion');
+
+    // generateTransitionWithRetry fue llamado con los snapshots correctos
+    expect(mockedRetry).toHaveBeenCalledTimes(1);
+    const callArgs = mockedRetry.mock.calls[0]!;
+    expect(callArgs[0]?.id).toBe('trans_atencion');
+    expect(callArgs[0]?.status).toBe('approved');
+    expect(callArgs[1]?.id).toBe('kf_atencion_in');
+    expect(callArgs[2]?.id).toBe('kf_interes_in');
+
+    // Estado final: status=done + videoBlob + videoUrl + veoOperationId
+    const after = useProjectStore.getState().transitions.get('trans_atencion');
+    expect(after?.status).toBe('done');
+    expect(after?.videoBlob).toBe(mockBlob);
+    expect(after?.videoUrl).toBe(mockUrl);
+    expect(after?.veoOperationId).toBe('op_test_123');
+    expect(after?.errorMessage).toBeUndefined();
+    expect(typeof after?.generatedAt).toBe('number');
+
+    // El clip también debe estar en el mapa clips
+    expect(useProjectStore.getState().clips.get('trans_atencion')).toBe(mockBlob);
+  });
+
+  it('setea status=failed con errorMessage y re-throw si generateTransitionWithRetry rechaza', async () => {
+    setupApprovedTransitionWithKeyframes('trans_atencion');
+
+    mockedRetry.mockRejectedValueOnce(new Error('safety: blocked by policy'));
+
+    await expect(
+      useProjectStore.getState().generateTransition('trans_atencion'),
+    ).rejects.toThrow(/safety/);
+
+    const after = useProjectStore.getState().transitions.get('trans_atencion');
+    expect(after?.status).toBe('failed');
+    expect(after?.errorMessage).toContain('safety');
+  });
+
+  it('rechaza con mensaje claro si transition.status !== approved', async () => {
+    // Estado inicial: trans_atencion está en 'pending'.
+    await expect(
+      useProjectStore.getState().generateTransition('trans_atencion'),
+    ).rejects.toThrow(/aprobado/);
+
+    // No debe haber llamado al service real.
+    expect(mockedRetry).not.toHaveBeenCalled();
+  });
+
+  it('rechaza con mensaje claro si faltan keyframes (fromKf o toKf undefined)', async () => {
+    // Aprobar transición pero sin keyframes subidos (estado inicial vacío).
+    useProjectStore.getState().approveTransitionPrompt('trans_atencion', 'prompt');
+    expect(useProjectStore.getState().transitions.get('trans_atencion')?.status).toBe('approved');
+
+    // El estado inicial tiene keyframes con status='empty' y sin blob.
+    // Eso es válido para el check (existen en el Map), por lo que SÍ pasaría
+    // la validación de "existencia". Verificamos que al menos el flujo llega
+    // hasta invocar generateTransitionWithRetry con snapshots vacíos.
+    // Para forzar el path "faltan keyframes", removemos uno del Map.
+    useProjectStore.setState((s) => {
+      const next = new Map(s.keyframes);
+      next.delete('kf_interes_in');
+      return { keyframes: next };
+    });
+
+    await expect(
+      useProjectStore.getState().generateTransition('trans_atencion'),
+    ).rejects.toThrow(/Faltan keyframes/);
+
+    expect(mockedRetry).not.toHaveBeenCalled();
+  });
+
+  it('no rompe otros estados del store (analysisJobs, brief, etc.) tras generación exitosa', async () => {
+    setupApprovedTransitionWithKeyframes('trans_atencion');
+    useProjectStore.getState().loadBrief({ ...sampleBrief, createdAt: 1, updatedAt: 1 });
+
+    mockedRetry.mockResolvedValueOnce({
+      blob: new Blob(['x'], { type: 'video/mp4' }),
+      url: 'blob:x',
+      operationId: 'op_x',
+      attempts: 1,
+      totalLatencyMs: 50,
+    });
+
+    await useProjectStore.getState().generateTransition('trans_atencion');
+
+    const s = useProjectStore.getState();
+    expect(s.brief?.business.name).toBe('CP Automotriz');
+    // Las demás transiciones siguen intactas (no fueron tocadas).
+    expect(s.transitions.get('trans_interes')?.status).toBe('pending');
   });
 });

@@ -74,11 +74,11 @@ export function PromptApprovalGate() {
     startGenerationJob(transition.id);
     try {
       setGenerating(true);
+      // ARCH-20260704-10: projectStore.generateTransition ahora ejecuta
+      // la generación real de Veo (5 reintentos con backoff) y resuelve
+      // solo cuando termina (éxito o fallo).
       await generateTransition(transition.id);
       finishGenerationJob(transition.id, true);
-      // Tras aprobar, simulamos la generación: en S1 el cliente llama Veo vía service.
-      // Para evitar bloquear el flujo cuando no hay API key, dejamos el estado en 'generating'
-      // y el caller integrará el resultado cuando vuelva.
     } catch (e) {
       finishGenerationJob(transition.id, false, (e as Error).message);
       addToast({ kind: 'error', message: (e as Error).message ?? 'Error al lanzar Veo' });

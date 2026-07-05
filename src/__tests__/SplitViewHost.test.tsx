@@ -36,6 +36,25 @@ vi.mock('@/services/versionHistory', () => {
   };
 });
 
+// ARCH-20260704-10: mockear generateTransitionWithRetry para que
+// SplitViewHost tests no intenten HTTP real cuando projectStore.generateTransition
+// ejecuta el flujo real.
+vi.mock('@/services/gemini/video', async () => {
+  const actual = await vi.importActual<typeof import('@/services/gemini/video')>(
+    '@/services/gemini/video',
+  );
+  return {
+    ...actual,
+    generateTransitionWithRetry: vi.fn(async () => ({
+      blob: new Blob(['mock-clip-bytes'], { type: 'video/mp4' }),
+      url: 'blob:http://localhost/mock-clip',
+      operationId: 'op_mock',
+      attempts: 1,
+      totalLatencyMs: 10,
+    })),
+  };
+});
+
 import { SplitViewHost } from '@/components/generation/SplitViewHost';
 import { useProjectStore } from '@/stores/projectStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -153,10 +172,9 @@ describe('<SplitViewHost /> — ADR-04 Gate (H1 fix)', () => {
       }),
     );
 
-    // Verificar que la transición sigue aprobada
-    expect(useProjectStore.getState().transitions.get('trans_deseo')?.status).toMatch(
-      /approved|generating/,
-    );
+    // Verificar que la transición quedó en estado terminal (done) tras
+    // la generación real (mocked). ARCH-20260704-10.
+    expect(useProjectStore.getState().transitions.get('trans_deseo')?.status).toBe('done');
 
     // Verificar success toast
     const toasts = getLatestToasts();
@@ -317,5 +335,39 @@ describe('<SplitViewHost /> — ADR-04 Gate (H1 fix)', () => {
     await waitFor(() => {
       expect(buildKeyframeTransitionPrompt).toHaveBeenCalledTimes(2);
     });
+  });
+
+  // ARCH-20260704-10: flujo handleApprove → generateTransition (real) →
+  // finishGenerationJob(true) end-to-end. El nuevo projectStore.generateTransition
+  // invoca generateTransitionWithRetry (mocked aquí) y resuelve con blob + url.
+  it('Test 6: handleApprove ejecuta Veo real y marca generationJob done', async () => {
+    const transitionId = 'trans_deseo';
+    setupProjectStore({ ...baseTransition, status: 'pending', prompt: 'old-prompt' });
+    setupUISplitView(transitionId);
+
+    render(<SplitViewHost />);
+
+    // Trigger handleApprove vía el botón "Aprobar prompt" del editor.
+    const approveBtn = screen.getByTestId('approve-btn');
+    await act(async () => {
+      fireEvent.click(approveBtn);
+    });
+
+    // Tras la aprobación + generación, la transición debe estar en 'done'.
+    await waitFor(() => {
+      expect(useProjectStore.getState().transitions.get(transitionId)?.status).toBe('done');
+    });
+
+    // El generationJob debe estar marcado como done con attempts poblados.
+    const job = useProjectStore.getState().generationJobs.get(transitionId);
+    expect(job?.state).toBe('done');
+    expect(job?.errorMessage).toBeUndefined();
+
+    // El video blob debe haberse persistido en el store.
+    const blob = useProjectStore.getState().transitions.get(transitionId)?.videoBlob;
+    expect(blob).toBeDefined();
+
+    // El split view debe haberse cerrado.
+    expect(useUIStore.getState().splitViewTransitionId).toBeNull();
   });
 });

@@ -15,6 +15,7 @@ import type { KeyframeTransition, AidaNodeKey, PromptVersion } from '@/types/tra
 import { TRANSITION_DURATIONS } from '@/types/transition';
 import type { AnalysisJob, GenerationJob } from '@/types/progressJobs';
 import { idbStorage, blobToBase64, base64ToBlob } from './idbStorage';
+import { generateTransitionWithRetry } from '@/services/gemini/video';
 
 const PROJECT_STORE_VERSION = 1;
 const DEFAULT_CAMERA: CameraSpec = {
@@ -443,12 +444,42 @@ export const useProjectStore = create<ProjectState>()(
           return { transitions: next };
         }),
 
+      // ARCH-20260704-10: generateTransition ahora invoca la generación real
+      // de Veo vía generateTransitionWithRetry (con 5 reintentos y backoff
+      // exponencial). El flujo anterior era un stub S1 que solo seteaba
+      // status='generating' y terminaba.
+      //
+      // Decisión de diseño: usamos `generateTransitionWithRetry` directamente
+      // (no `jobQueue.createBatch`) porque:
+      //   1. Mantiene el contrato simple (Promise<void> en éxito, throw en fallo).
+      //   2. PromptApprovalGate ya gestiona los badges persistentes vía
+      //      `startGenerationJob` / `finishGenerationJob` antes/después del await.
+      //   3. Evita acoplar este flujo a la cola persistente (que ya tiene su
+      //      propio flujo en MasterTab.handleConfirmBatch para lotes grandes).
+      //
+      // Snapshots: capturamos copies de transition + keyframes al inicio para
+      // evitar race conditions si el usuario reuploada una imagen mientras
+      // Veo está trabajando (el reset del keyframe limpia la transición).
       generateTransition: async (transitionId: string) => {
         const transition = get().transitions.get(transitionId);
         if (!transition) throw new Error('Transición no existe');
         if (transition.status !== 'approved') {
           throw new Error('La transición requiere prompt aprobado antes de generar');
         }
+        const fromKf = get().keyframes.get(transition.fromKeyframe);
+        const toKf = get().keyframes.get(transition.toKeyframe);
+        if (!fromKf || !toKf) {
+          throw new Error('Faltan keyframes para la transición');
+        }
+
+        // Snapshot inmutable para evitar race conditions si el usuario
+        // reuploada una imagen mientras Veo está procesando.
+        const transitionSnapshot = { ...transition };
+        const fromKfSnapshot = { ...fromKf };
+        const toKfSnapshot = { ...toKf };
+
+        // Feedback UI inmediato: status pasa a 'generating' antes del await
+        // para que el badge "Generando clip con Veo 3.1… ~Xs" se active.
         set((s) => {
           const cur = s.transitions.get(transitionId);
           if (!cur) return s;
@@ -456,6 +487,61 @@ export const useProjectStore = create<ProjectState>()(
           next.set(transitionId, { ...cur, status: 'generating' });
           return { transitions: next };
         });
+
+        try {
+          const result = await generateTransitionWithRetry(
+            transitionSnapshot,
+            fromKfSnapshot,
+            toKfSnapshot,
+          );
+
+          // Éxito: persistir el resultado en la transición + clips map.
+          // ARCH-20260704-10 (race-condition guard): si el usuario re-subió la imagen
+          // mientras Veo trabajaba (1-5 min), el store ya reseteó esta transición a
+          // 'pending' o 'uploaded'. Si aplicamos el resultado viejo, el video generado
+          // desde la imagen anterior aparecería como "done" con un blob obsoleto que
+          // NO corresponde al keyframe actual. Guard: solo persistir si el status
+          // sigue siendo 'generating'.
+          set((s) => {
+            const cur = s.transitions.get(transitionId);
+            if (!cur) return s;
+            if (cur.status !== 'generating') {
+              // Stale: el usuario reemplazó la imagen o aprobó otra transición.
+              // Descartar el blob para no cobrar memoria ni confundir la UI.
+              if (typeof result?.url === 'string' && result.url.startsWith('blob:')) {
+                URL.revokeObjectURL(result.url);
+              }
+              return s;
+            }
+            const nextTrans = new Map(s.transitions);
+            nextTrans.set(transitionId, {
+              ...cur,
+              status: 'done',
+              videoBlob: result.blob,
+              videoUrl: result.url,
+              veoOperationId: result.operationId,
+              generatedAt: Date.now(),
+              errorMessage: undefined,
+            });
+            const nextClips = new Map(s.clips);
+            nextClips.set(transitionId, result.blob);
+            return { transitions: nextTrans, clips: nextClips };
+          });
+        } catch (err) {
+          const errorMessage = (err as Error).message ?? 'Error desconocido';
+          set((s) => {
+            const cur = s.transitions.get(transitionId);
+            if (!cur) return s;
+            const next = new Map(s.transitions);
+            next.set(transitionId, {
+              ...cur,
+              status: 'failed',
+              errorMessage,
+            });
+            return { transitions: next };
+          });
+          throw err;
+        }
       },
 
       regenerateTransition: async (transitionId: string) =>
