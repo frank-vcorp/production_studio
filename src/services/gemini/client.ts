@@ -143,11 +143,11 @@ export class GeminiProxyClient {
   // ---------- Métodos semánticos ----------
 
   generateContent(req: GenerateContentRequest): Promise<GenerateContentResponse> {
-    return this.request<GenerateContentResponse>({ path: '/generateContent', body: req });
+    return this.request<GenerateContentResponse>({ path: '/api/gemini/generateContent', body: req });
   }
 
   generateVideo(req: GenerateVideoRequest): Promise<VideoOperation> {
-    return this.request<VideoOperation>({ path: '/generateVideo', body: req });
+    return this.request<VideoOperation>({ path: '/api/gemini/generateVideo', body: req });
   }
 
   /**
@@ -159,22 +159,22 @@ export class GeminiProxyClient {
     // El worker expone como `/api/gemini/operations/{name}`; aquí normalizamos.
     const op = name.startsWith('operations/') ? name : `operations/${name}`;
     return this.request<VideoOperation>({
-      path: `/${op}`,
+      path: `/api/gemini/${op}`,
       method: 'GET',
       timeoutMs: 30_000,
     });
   }
 
   generateImage(req: GenerateImageRequest): Promise<GenerateImageResponse> {
-    return this.request<GenerateImageResponse>({ path: '/generateImage', body: req });
+    return this.request<GenerateImageResponse>({ path: '/api/gemini/generateImage', body: req });
   }
 
   analyzeImage(req: GenerateContentRequest): Promise<GenerateContentResponse> {
-    return this.request<GenerateContentResponse>({ path: '/analyzeImage', body: req });
+    return this.request<GenerateContentResponse>({ path: '/api/gemini/analyzeImage', body: req });
   }
 
   synthesizeSpeech(req: TTSRequest): Promise<TTSResponse> {
-    return this.request<TTSResponse>({ path: '/synthesizeSpeech', body: req });
+    return this.request<TTSResponse>({ path: '/api/gemini/synthesizeSpeech', body: req });
   }
 }
 

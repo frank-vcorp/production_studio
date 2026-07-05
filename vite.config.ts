@@ -48,7 +48,7 @@ export default defineConfig({
     // Si necesitas cambiar el Worker, edita aquí y haz commit.
     // NUNCA expone la Gemini API key — esa se inyecta server-side en el Worker.
     'import.meta.env.VITE_PROXY_BASE': JSON.stringify(
-      'https://bridge-gemini-proxy.vectoria-pstudio.workers.dev/api/gemini'
+      'https://bridge-gemini-proxy.vectoria-pstudio.workers.dev'
     ),
   },
   test: {
