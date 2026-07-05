@@ -236,7 +236,9 @@ export default {
       case '/api/gemini/generateImage':
         return forwardToGemini(env, '/models/imagen-3.0-generate-002:predict', body, origin, requestId);
       case '/api/gemini/analyzeImage':
-        return forwardToGemini(env, '/models/gemini-2.5-pro-vision:generateContent', body, origin, requestId);
+        // S5 §Worker fix: gemini-2.5-pro-vision NO EXISTE en la API actual.
+        // Usamos gemini-2.5-flash que tiene capacidad multimodal (vision).
+        return forwardToGemini(env, '/models/gemini-2.5-flash:generateContent', body, origin, requestId);
       case '/api/gemini/synthesizeSpeech':
         return forwardToGemini(env, '/models/gemini-2.5-flash-preview-tts:generateContent', body, origin, requestId);
       default: {
