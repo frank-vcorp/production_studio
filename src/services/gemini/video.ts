@@ -1,10 +1,12 @@
 /**
  * video — Veo 3.1 I2V generation + polling + retry robusto.
  * Spec: SPEC-S1-FOUNDATION §1.13 + ARCH-20260703-04 §5 Paso 5 + SPEC-S2-ROBUSTNESS §Tarea 2.3
- *      + ARCH-20260704-11 (predictLongRunning + instances[] body + descarga URI).
+ *      + ARCH-20260704-11 (predictLongRunning + instances[] body + descarga URI)
+ *      + ARCH-20260705-04 (sandbox toggle + RETRY_DELAYS_MS 2).
  */
 
 import { geminiClient, GeminiProxyError } from './client';
+import { IS_SANDBOX } from '@/utils/sandbox';
 import type { KeyframeTransition } from '@/types/transition';
 import type { Keyframe } from '@/types/keyframe';
 import type { VideoOperation } from '@/types/gemini';
@@ -25,6 +27,11 @@ const POLL_TIMEOUT_MS = 5 * 60_000; // 5 min hard cap
  * Spec: ARCH-20260704-11 + ARCH-20260705-02 (bytesBase64Encoded, sin personGeneration).
  */
 export async function startVideoGeneration(opts: GenerateOpts): Promise<VideoOperation> {
+  // ARCH-20260705-04: ruta sandbox determinista (sin red, sin créditos).
+  if (IS_SANDBOX) {
+    const { mockStartVideoGeneration } = await import('@/services/sandbox');
+    return mockStartVideoGeneration(opts);
+  }
   const { transition, fromKeyframe } = opts;
   if (transition.status !== 'approved') {
     throw new GeminiProxyError(
@@ -65,6 +72,11 @@ export async function startVideoGeneration(opts: GenerateOpts): Promise<VideoOpe
 
 /** Wrapper polling con backoff lineal */
 export async function pollVideoOperation(name: string): Promise<VideoOperation> {
+  // ARCH-20260705-04: ruta sandbox determinista.
+  if (IS_SANDBOX) {
+    const { mockPollVideoOperation } = await import('@/services/sandbox');
+    return mockPollVideoOperation(name);
+  }
   const started = Date.now();
   let lastOp: VideoOperation | undefined;
   let delay = POLL_INTERVAL_MS;
@@ -82,7 +94,25 @@ export async function pollVideoOperation(name: string): Promise<VideoOperation> 
  * Versión ASYNC (antes era sync) porque Veo 3.1 ya NO devuelve inlineData.
  * Spec: ARCH-20260704-11.
  */
-export async function extractVideoFromOperation(op: VideoOperation): Promise<{ blob: Blob; url: string }> {
+export async function extractVideoFromOperation(
+  op: VideoOperation,
+  fromKeyframe?: Keyframe,
+  transition?: KeyframeTransition,
+): Promise<{ blob: Blob; url: string }> {
+  // ARCH-20260705-04: ruta sandbox — necesita keyframe origen + transición para
+  // generar el blob simulado (no hay URI firmada real).
+  if (IS_SANDBOX) {
+    if (!fromKeyframe || !transition) {
+      throw new GeminiProxyError(
+        500,
+        'Sandbox requiere fromKeyframe + transition para generar el clip simulado',
+        {},
+      );
+    }
+    const { mockExtractVideoFromOperation } = await import('@/services/sandbox');
+    const { blob, url } = await mockExtractVideoFromOperation(op, fromKeyframe, transition);
+    return { blob, url };
+  }
   if (!op.done) {
     throw new GeminiProxyError(409, 'La operación de Veo aún no ha terminado', {});
   }
@@ -107,7 +137,9 @@ export async function generateTransition(opts: GenerateOpts): Promise<{ blob: Bl
   const op = await startVideoGeneration(opts);
   const opName = op.name;
   const completed = await pollVideoOperation(opName);
-  const { blob, url } = await extractVideoFromOperation(completed);
+  // ARCH-20260705-04: pasamos keyframeFrom + transition para que la ruta
+  // sandbox pueda generar el blob simulado. En producción se ignoran.
+  const { blob, url } = await extractVideoFromOperation(completed, opts.fromKeyframe, opts.transition);
   return { blob, url, operationId: opName };
 }
 
@@ -119,8 +151,12 @@ export const __pollTimeoutMs = POLL_TIMEOUT_MS;
 // S2 — Retry robusto + error classification
 // ────────────────────────────────────────────────────────────────────────
 
-/** Backoff exponencial: 5 intentos (1s, 2s, 4s, 8s, 16s). */
-export const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000] as const;
+/**
+ * ARCH-20260705-04 (defensa en profundidad): 2 intentos (1s, 4s) en lugar de 5.
+ * Reduce el costo máximo por fallo de ~$2.00 USD a ~$0.80 USD.
+ * En sandbox este array NO se usa (mock determinista no reintenta).
+ */
+export const RETRY_DELAYS_MS = [1000, 4000] as const;
 
 /** Mapea un error crudo a un VeoError tipado. */
 export function classifyVeoError(err: unknown): VeoError {

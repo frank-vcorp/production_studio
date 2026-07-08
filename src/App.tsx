@@ -31,6 +31,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useApiKeysStore } from '@/stores/apiKeysStore';
 import { applySectorTemplate } from '@/utils/sectorTemplate';
 import { cn } from '@/utils/cn';
+import { IS_SANDBOX } from '@/utils/sandbox';
 import type { SectorId } from '@/types/sector';
 
 type TabId = 'brief' | 'storyboard' | 'export';
@@ -189,6 +190,21 @@ export function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* ARCH-20260705-04: badge ámbar "SANDBOX" cuando VITE_USE_SANDBOX=true.
+             *  SIEMPRE visible (no ephemeral) — el usuario NUNCA debe confundir
+             *  sandbox con producción. */}
+            {IS_SANDBOX && (
+              <span
+                data-testid="sandbox-badge"
+                role="status"
+                aria-live="polite"
+                title="🧪 Modo SANDBOX: ninguna llamada a Gemini API se está realizando. Toggle VITE_USE_SANDBOX=false para producción."
+                className="bg-amber-500/30 text-amber-200 border border-amber-500/50 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1"
+              >
+                <i className="fa-solid fa-flask" aria-hidden />
+                SANDBOX — sin gastos de API
+              </span>
+            )}
             <div
               className={cn(
                 'text-xs px-3 py-1.5 rounded-full border flex items-center gap-2',

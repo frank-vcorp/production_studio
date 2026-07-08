@@ -7,6 +7,7 @@ import { useModalKeyboardShortcuts } from '@/hooks/useModalKeyboardShortcuts';
 import {
   buildKeyframeTransitionPrompt,
 } from '@/services/promptBuilder';
+import { IS_SANDBOX } from '@/utils/sandbox';
 import type { KeyframeTransition } from '@/types/transition';
 import type { Keyframe } from '@/types/keyframe';
 
@@ -47,6 +48,9 @@ export function PromptApprovalGate() {
   const [draft, setDraft] = useState(initialPrompt);
   const [showDiff, setShowDiff] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // ARCH-20260705-04: modal de costo pre-generación (defensa en profundidad).
+  // En sandbox se OMITE porque no hay gasto real.
+  const [showCostConfirm, setShowCostConfirm] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(open, containerRef);
@@ -67,6 +71,19 @@ export function PromptApprovalGate() {
       addToast({ kind: 'warning', message: 'El prompt no puede estar vacío.' });
       return;
     }
+
+    // ARCH-20260705-04: en producción pedimos confirmación de costo antes de gastar.
+    // En sandbox NO aplica (no hay gasto real).
+    if (!IS_SANDBOX) {
+      setShowCostConfirm(true);
+      return;
+    }
+
+    await doGenerate();
+  };
+
+  const doGenerate = async () => {
+    setShowCostConfirm(false);
     approveTransitionPrompt(transition.id, draft.trim());
     addToast({ kind: 'success', message: 'Prompt aprobado. Lanzando Veo...' });
     closePromptGate();
@@ -75,8 +92,10 @@ export function PromptApprovalGate() {
     try {
       setGenerating(true);
       // ARCH-20260704-10: projectStore.generateTransition ahora ejecuta
-      // la generación real de Veo (5 reintentos con backoff) y resuelve
-      // solo cuando termina (éxito o fallo).
+      // la generación real de Veo (RETRY_DELAYS_MS reintentos con backoff)
+      // y resuelve solo cuando termina (éxito o fallo).
+      // ARCH-20260705-04: RETRY_DELAYS_MS bajó de 5 a 2 para reducir costo
+      // máximo por fallo (defensa en profundidad, ver video.ts).
       await generateTransition(transition.id);
       finishGenerationJob(transition.id, true);
     } catch (e) {
@@ -188,6 +207,69 @@ export function PromptApprovalGate() {
           </div>
         </footer>
       </div>
+
+      {/* ARCH-20260705-04: Modal de costo pre-generación. Solo aparece en
+       *  producción (IS_SANDBOX === false). En sandbox el flujo salta directo
+       *  a doGenerate() porque no hay gasto real. */}
+      {showCostConfirm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 animate-fade-in"
+          data-testid="cost-confirm-modal"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cost-confirm-title"
+            className="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+          >
+            <h3
+              id="cost-confirm-title"
+              className="text-lg font-bold text-amber-300 flex items-center gap-2 mb-3"
+            >
+              <i className="fa-solid fa-coins" /> Costo estimado de generación
+            </h3>
+            <p className="text-sm text-slate-300 mb-4">
+              Esta acción generará un clip real con Veo 3.1 y consumirá créditos
+              de Gemini API:
+            </p>
+            <ul className="text-sm text-slate-200 space-y-1 mb-4">
+              <li>
+                • Clip Veo 3.1 (~{transition.duration}s, 9:16):{' '}
+                <strong>$0.40 USD</strong>
+              </li>
+              <li>
+                • Reintentos por errores transitorios: hasta{' '}
+                <strong>$0.80 USD adicionales</strong>
+              </li>
+              <li>
+                • Total máximo:{' '}
+                <strong>$1.20 USD (~$24 MXN)</strong>
+              </li>
+            </ul>
+            <p className="text-xs text-slate-400 mb-6">
+              💡 Tip: activá el modo Sandbox (VITE_USE_SANDBOX=true) para validar
+              flujos sin gastar API.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => setShowCostConfirm(false)}
+                disabled={generating}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                icon="fa-bolt"
+                onClick={doGenerate}
+                loading={generating}
+              >
+                Aprobar y gastar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

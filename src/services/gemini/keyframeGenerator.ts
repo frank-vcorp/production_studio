@@ -1,9 +1,11 @@
 /**
  * keyframeGenerator — Imagen 3 para keyframes OUT faltantes.
- * Spec: SPEC-S1-FOUNDATION §1.8 + ARCH-20260703-04 §3 Paso 3.
+ * Spec: SPEC-S1-FOUNDATION §1.8 + ARCH-20260703-04 §3 Paso 3
+ *      + ARCH-20260705-04 (sandbox toggle).
  */
 
 import { geminiClient, GeminiProxyError } from './client';
+import { IS_SANDBOX } from '@/utils/sandbox';
 import { buildImage3Prompt } from '@/services/promptBuilder';
 import type { Keyframe, VisualAnalysis, CameraSpec } from '@/types/keyframe';
 import type { MasterBrief } from '@/types/brief';
@@ -57,18 +59,29 @@ export async function generateKeyframeOut(
     brief,
     brandKit,
   });
-  const res = await geminiClient.generateImage({
-    prompt,
-    referenceImage: { mimeType: keyframeIn.mimeType ?? 'image/png', data: keyframeIn.base64 },
-    aspectRatio: '9:16',
-    numberOfImages: 1,
-    personGeneration: 'dont_allow',
-    safetyFilterLevel: 'block_medium_and_above',
-  });
-  const pred = res.predictions?.[0];
-  if (!pred) throw new GeminiProxyError(500, 'Imagen 3 sin predictions', { prompt });
-  const mimeType = pred.mimeType ?? 'image/png';
-  const blob = base64ToBlob(pred.bytesBase64Encoded, mimeType);
+
+  let blob: Blob;
+  let mimeType: string;
+  // ARCH-20260705-04: ruta sandbox determinista.
+  if (IS_SANDBOX) {
+    const { mockGenerateImage } = await import('@/services/sandbox');
+    const sandboxRes = await mockGenerateImage(prompt);
+    blob = sandboxRes.blob;
+    mimeType = sandboxRes.mimeType;
+  } else {
+    const res = await geminiClient.generateImage({
+      prompt,
+      referenceImage: { mimeType: keyframeIn.mimeType ?? 'image/png', data: keyframeIn.base64 },
+      aspectRatio: '9:16',
+      numberOfImages: 1,
+      personGeneration: 'dont_allow',
+      safetyFilterLevel: 'block_medium_and_above',
+    });
+    const pred = res.predictions?.[0];
+    if (!pred) throw new GeminiProxyError(500, 'Imagen 3 sin predictions', { prompt });
+    mimeType = pred.mimeType ?? 'image/png';
+    blob = base64ToBlob(pred.bytesBase64Encoded, mimeType);
+  }
   const base64 = await blobToBase64Raw(blob);
   return { blob, base64, mimeType, prompt };
 }

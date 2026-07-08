@@ -51,7 +51,9 @@ export interface VisualAnalysis {
   dominantShapes: string[];
   technicalNotes: string;
   analyzedAt: number;
-  model: 'gemini-2.5-flash';
+  /** ARCH-20260705-04: agregado 'sandbox-vision-v1' para mocks deterministas
+   *  activables via VITE_USE_SANDBOX=true (no consumen API Gemini). */
+  model: 'gemini-2.5-flash' | 'sandbox-vision-v1';
   /** 0-1, alerta si < 0.4 */
   confidence: number;
 }

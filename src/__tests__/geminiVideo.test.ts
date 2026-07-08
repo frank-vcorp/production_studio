@@ -184,10 +184,10 @@ describe('gemini/video retry + classify', () => {
     expect(e.retryable).toBe(false);
   });
 
-  it('RETRY_DELAYS_MS tiene 5 niveles con backoff exponencial', () => {
-    expect(RETRY_DELAYS_MS).toHaveLength(5);
+  it('RETRY_DELAYS_MS tiene 2 niveles (defensa en profundidad ARCH-20260705-04)', () => {
+    expect(RETRY_DELAYS_MS).toHaveLength(2);
     expect(RETRY_DELAYS_MS[0]).toBe(1000);
-    expect(RETRY_DELAYS_MS[4]).toBe(16000);
+    expect(RETRY_DELAYS_MS[1]).toBe(4000);
   });
 
   it('generateTransitionWithRetry respeta approval gate (throw si status != approved)', async () => {

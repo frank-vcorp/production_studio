@@ -1,9 +1,10 @@
 /**
  * imageAnalysis — Gemini Vision → VisualAnalysis JSON validado.
- * Spec: SPEC-S1-FOUNDATION §1.7 + ARCH-20260703-04 §3.
+ * Spec: SPEC-S1-FOUNDATION §1.7 + ARCH-20260703-04 §3 + ARCH-20260705-04 (sandbox toggle).
  */
 
 import { geminiClient, GeminiProxyError } from './client';
+import { IS_SANDBOX } from '@/utils/sandbox';
 import type { VisualAnalysis } from '@/types/keyframe';
 
 interface RawVisualAnalysis {
@@ -126,6 +127,11 @@ async function blobToBase64Parts(blob: Blob): Promise<{ mimeType: string; data: 
 }
 
 export async function analyzeImageForVision(blob: Blob): Promise<VisualAnalysis> {
+  // ARCH-20260705-04: ruta sandbox determinista (sin red, sin créditos).
+  if (IS_SANDBOX) {
+    const { mockAnalyzeImageForVision } = await import('@/services/sandbox');
+    return mockAnalyzeImageForVision(blob);
+  }
   const parts = await blobToBase64Parts(blob);
   const res = await geminiClient.analyzeImage({
     contents: [
