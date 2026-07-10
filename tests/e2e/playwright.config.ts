@@ -22,12 +22,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  webServer: {
-    command: 'pnpm dev --port 5173 --strictPort',
-    port: 5173,
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // IMPL-20260710-02: webServer deshabilitado. Correr vite manualmente antes del spec:
+  //   cd production_studio && VITE_USE_SANDBOX=true node node_modules/vite/bin/vite.js --port 5173 --strictPort
+  // (Razón: dependencia de pnpm global rota, evitamos el wrapper bash del webServer.)
   projects: [
     {
       name: 'chromium',
