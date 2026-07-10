@@ -237,7 +237,8 @@ export default {
         // ARCH-20260704-11: Veo 3.1 usa :predictLongRunning (no :generateVideo) con modelo preview.
         return forwardToGemini(env, '/models/veo-3.1-generate-preview:predictLongRunning', body, origin, requestId);
       case '/api/gemini/generateImage':
-        return forwardToGemini(env, '/models/imagen-3.0-generate-002:predict', body, origin, requestId);
+        // ARCH-20260710-01: Imagen 3 fue dado de baja. Usamos Imagen 4 con el mismo body shape.
+        return forwardToGemini(env, '/models/imagen-4.0-generate-001:predict', body, origin, requestId);
       case '/api/gemini/analyzeImage':
         // S5 §Worker fix: gemini-2.5-pro-vision NO EXISTE en la API actual.
         // Usamos gemini-2.5-flash que tiene capacidad multimodal (vision).
