@@ -63,7 +63,10 @@ export async function startVideoGeneration(opts: GenerateOpts): Promise<VideoOpe
       },
     ],
     parameters: {
-      durationSeconds: Math.max(3, Math.min(8, transition.duration)),
+      // IMPL-20260711-01: Veo 3.1-generate-preview REQUIERE 4 ≤ durationSeconds ≤ 8.
+      // Antes: Math.max(3, ...) — cuando el nodo era 'bumper' (3s) o 'cta' (3s),
+      // el API rechazaba con HTTP 400 'out of bound'.
+      durationSeconds: Math.max(4, Math.min(8, transition.duration)),
       aspectRatio: '9:16',
     },
   });
